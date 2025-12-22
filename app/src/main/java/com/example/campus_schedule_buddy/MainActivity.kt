@@ -3,12 +3,13 @@ package com.example.campus_schedule_buddy
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
-import android.widget.LinearLayout
+import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import android.widget.FrameLayout
-import androidx.activity.enableEdgeToEdge
+import android.widget.LinearLayout
+
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.campus_schedule_buddy.model.Course
@@ -19,22 +20,36 @@ import com.example.campus_schedule_buddy.view.AddEditCourseDialog
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
+import android.os.Handler
+import android.os.Looper
+import android.widget.RelativeLayout
+import androidx.activity.enableEdgeToEdge
 
 class MainActivity : AppCompatActivity() {
-    
+
     private lateinit var tvCurrentWeek: TextView
     private lateinit var btnPreviousWeek: ImageButton
     private lateinit var btnNextWeek: ImageButton
     private lateinit var btnToday: TextView
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
-    
+
     private var currentWeek = 1
     private val totalWeeks = 20
-    
+
     // 用于存储课程数据
     private val courseList = mutableListOf<Course>()
-    
+
+    // 用于定期更新当前课程高亮状态
+    private val handler = Handler(Looper.getMainLooper())
+    private val highlightRunnable = object : Runnable {
+        override fun run() {
+            highlightCurrentCourse()
+            // 每分钟检查一次当前课程
+            handler.postDelayed(this, 60000)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -44,12 +59,15 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        
+
         initViews()
         setupListeners()
         loadScheduleForWeek(currentWeek)
+
+        // 启动定时器定期更新当前课程高亮状态
+        handler.post(highlightRunnable)
     }
-    
+
     private fun initViews() {
         tvCurrentWeek = findViewById(R.id.tv_current_week)
         btnPreviousWeek = findViewById(R.id.btn_previous_week)
@@ -58,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         scheduleContainer = findViewById(R.id.schedule_container)
         scrollView = findViewById(R.id.scrollView)
     }
-    
+
     private fun setupListeners() {
         btnPreviousWeek.setOnClickListener {
             if (currentWeek > 1) {
@@ -67,7 +85,7 @@ class MainActivity : AppCompatActivity() {
                 loadScheduleForWeek(currentWeek)
             }
         }
-        
+
         btnNextWeek.setOnClickListener {
             if (currentWeek < totalWeeks) {
                 currentWeek++
@@ -75,7 +93,7 @@ class MainActivity : AppCompatActivity() {
                 loadScheduleForWeek(currentWeek)
             }
         }
-        
+
         btnToday.setOnClickListener {
             currentWeek = getCurrentWeek()
             updateWeekDisplay()
@@ -84,19 +102,22 @@ class MainActivity : AppCompatActivity() {
             scrollToCurrentTime()
         }
     }
-    
+
     private fun updateWeekDisplay() {
         tvCurrentWeek.text = "第${currentWeek}周"
-        
+
         // 更新按钮状态
         btnPreviousWeek.isEnabled = currentWeek > 1
         btnNextWeek.isEnabled = currentWeek < totalWeeks
     }
-    
+
     private fun loadScheduleForWeek(week: Int) {
         // 清空现有的课程视图
         scheduleContainer.removeAllViews()
-        
+
+        // 设置背景色
+        updateBackgroundColor()
+
         // 获取该周的课程数据
         val courses = if (courseList.isEmpty()) {
             // 如果没有自定义课程，使用假数据
@@ -105,213 +126,191 @@ class MainActivity : AppCompatActivity() {
             // 使用自定义课程数据
             courseList.filter { it.weekPattern.contains(week) }
         }
-        
-        // 按天分组课程
-        val coursesByDay = mutableMapOf<Int, MutableList<Course>>()
-        for (i in 1..7) {
-            coursesByDay[i] = mutableListOf()
+
+        // 创建课程表主容器（使用FrameLayout实现绝对定位）
+        val scheduleFrameLayout = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                getPeriodRowHeight() * 8 // 8节课的总高度
+            )
+            clipChildren = false
+            clipToPadding = false
         }
-        
+
+        // 先添加网格背景（时间列和分隔线）
+        addGridBackground(scheduleFrameLayout)
+
+        // 再添加课程卡片（后添加的在上层，不会被网格遮挡）
         courses.forEach { course ->
-            coursesByDay[course.dayOfWeek]?.add(course)
+            addCourseCard(scheduleFrameLayout, course)
         }
-        
-        // 创建8个时间段的视图（1-8节），同时处理跨越多节的课程
-        var currentPeriod = 1
-        while (currentPeriod <= 8) {
-            // 检查是否有课程从当前节次开始且跨越多个节次
-            val startingCourses = mutableMapOf<Int, Course>()
-            for (day in 1..7) {
-                val course = coursesByDay[day]?.find { it.startPeriod == currentPeriod }
-                if (course != null) {
-                    startingCourses[day] = course
-                }
-            }
-            
-            // 获取在当前节次的课程的最大跨度
-            var maxSpan = 1 // 至少是单节课
-            for (day in 1..7) {
-                val course = coursesByDay[day]?.find { it.startPeriod <= currentPeriod && it.endPeriod >= currentPeriod }
-                if (course != null) {
-                    val span = course.endPeriod - course.startPeriod + 1
-                    val startPeriodInSpan = currentPeriod - course.startPeriod + 1
-                    if (startPeriodInSpan <= span) {
-                        maxSpan = maxOf(maxSpan, span - startPeriodInSpan + 1)
-                    }
-                }
-            }
-            
-            // 创建该节次行（或跨越多节的行）
-            val periodRow = createPeriodRow(currentPeriod, coursesByDay, maxSpan)
-            scheduleContainer.addView(periodRow)
-            
-            // 根据最大跨度跳过已经显示的节次
-            currentPeriod += maxSpan
-        }
-        
+
+        scheduleContainer.addView(scheduleFrameLayout)
+
         // 高亮当前时间的课程
         highlightCurrentCourse()
     }
-    
-    private fun createPeriodRow(startPeriod: Int, coursesByDay: Map<Int, List<Course>>, spanCount: Int = 1): View {
-        val rowLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dpToPx(80 * spanCount) // 根据跨越节次数计算高度
-            )
+
+    /**
+     * 根据系统主题更新背景色
+     */
+    private fun updateBackgroundColor() {
+        val isDarkMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val backgroundColor = if (isDarkMode) {
+            ContextCompat.getColor(this, R.color.dark_background)
+        } else {
+            ContextCompat.getColor(this, R.color.light_background)
         }
-        
-        // 时间列 - 只显示起始节次，其他节次留空
-        val timeColumn = TextView(this).apply {
-            text = "第${startPeriod}节"
-            textSize = 12f
-            gravity = android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.END
-            setPadding(0, 0, dpToPx(4), 0)
-            layoutParams = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                1f
-            )
-        }
-        rowLayout.addView(timeColumn)
-        
-        // 为周一到周日创建列
-        for (day in 1..7) {
-            val cellLayout = FrameLayout(this).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    1f
-                )
-            }
-            
-            // 查找当天该节次（或跨越该节次）的课程
-            val courseForThisSlot = coursesByDay[day]?.find { 
-                startPeriod >= it.startPeriod && startPeriod <= it.endPeriod
-            }
-            
-            if (courseForThisSlot != null && startPeriod == courseForThisSlot.startPeriod) {
-                // 在课程的起始节次添加卡片
-                val courseCard = CourseCardView(this)
-                courseCard.setCourse(courseForThisSlot)
-                
-                // 计算课程跨越的节次数
-                val span = courseForThisSlot.endPeriod - courseForThisSlot.startPeriod + 1
-                
-                // 设置卡片布局参数
-                courseCard.layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    dpToPx(70 * span + 10 * (span - 1)) // 卡片高度
-                ).apply {
-                    gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
-                }
-                
-                // 设置是否为跨越多个节次的卡片
-                courseCard.setIsSpanning(span > 1)
-                
-                // 添加点击事件
-                courseCard.setOnClickListener {
-                    showCourseDetailDialog(courseForThisSlot)
-                }
-                
-                cellLayout.addView(courseCard)
-                
-                // 启动入场动画
-                val delay = ((day - 1) * 50L + (courseForThisSlot.startPeriod - 1) * 30L)
-                courseCard.startEntranceAnimation(delay)
-            } else if (courseForThisSlot == null) {
-                // 无课程时段
-                val noCourseText = TextView(this).apply {
-                    text = if (spanCount == 1) "无课程" else ""
-                    textSize = 12f
-                    setTextColor(android.graphics.Color.GRAY)
-                    gravity = android.view.Gravity.CENTER
-                    layoutParams = FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    )
-                }
-                cellLayout.addView(noCourseText)
-            }
-            // 如果courseForThisSlot != null 但 startPeriod != courseForThisSlot.startPeriod，
-            // 说明这个位置在课程卡片内，不显示任何内容
-            
-            rowLayout.addView(cellLayout)
-        }
-        
-        return rowLayout
+        scheduleContainer.setBackgroundColor(backgroundColor)
     }
-    
+
+    /**
+     * 添加网格背景（时间列和分隔线）
+     */
+    private fun addGridBackground(container: FrameLayout) {
+        val isDarkMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val rowHeight = getPeriodRowHeight()
+        val timeColumnWidth = dpToPx(50) // 时间列宽度
+
+        // 为每个节次创建时间标签
+        for (period in 1..8) {
+            val timeLabel = TextView(this).apply {
+                text = "第${period}节"
+                textSize = 12f
+                gravity = android.view.Gravity.CENTER
+                setTextColor(if (isDarkMode) 
+                    ContextCompat.getColor(context, R.color.dark_text_secondary)
+                else 
+                    ContextCompat.getColor(context, R.color.light_text_secondary))
+            }
+            
+            val params = FrameLayout.LayoutParams(timeColumnWidth, rowHeight)
+            params.topMargin = rowHeight * (period - 1)
+            params.leftMargin = 0
+            timeLabel.layoutParams = params
+            
+            container.addView(timeLabel)
+        }
+
+        // 添加水平分隔线
+        val lineColor = if (isDarkMode) 
+            ContextCompat.getColor(this, R.color.dark_text_secondary) 
+        else 
+            ContextCompat.getColor(this, R.color.light_text_secondary)
+        
+        for (i in 1..8) {
+            val divider = View(this).apply {
+                setBackgroundColor(lineColor)
+                alpha = 0.3f
+            }
+            val params = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(1)
+            )
+            params.topMargin = rowHeight * i
+            divider.layoutParams = params
+            container.addView(divider)
+        }
+    }
+
+    /**
+     * 添加课程卡片（绝对定位，支持跨节课程）
+     */
+    private fun addCourseCard(container: FrameLayout, course: Course) {
+        val rowHeight = getPeriodRowHeight()
+        val timeColumnWidth = dpToPx(50)
+        
+        // 等待容器测量完成后再计算位置
+        container.post {
+            val containerWidth = container.width
+            if (containerWidth <= 0) return@post
+            
+            // 计算每个星期列的宽度
+            val dayColumnWidth = (containerWidth - timeColumnWidth) / 7
+            
+            // 计算课程卡片的位置和尺寸
+            val span = course.endPeriod - course.startPeriod + 1
+            val cardLeft = timeColumnWidth + (course.dayOfWeek - 1) * dayColumnWidth + dpToPx(2)
+            val cardTop = (course.startPeriod - 1) * rowHeight + dpToPx(2)
+            val cardWidth = dayColumnWidth - dpToPx(4)
+            val cardHeight = rowHeight * span - dpToPx(4)
+            
+            val courseCard = CourseCardView(this).apply {
+                setCourse(course)
+                setIsSpanning(span)
+                
+                layoutParams = FrameLayout.LayoutParams(cardWidth, cardHeight).apply {
+                    leftMargin = cardLeft
+                    topMargin = cardTop
+                }
+                
+                // 设置较高的elevation确保课程卡片在网格之上
+                elevation = dpToPx(4).toFloat()
+                
+                setOnClickListener {
+                    showCourseDetailDialog(course)
+                }
+            }
+            
+            container.addView(courseCard)
+            
+            // 启动入场动画
+            val delay = ((course.dayOfWeek - 1) * 50L + (course.startPeriod - 1) * 30L)
+            courseCard.startEntranceAnimation(delay)
+        }
+    }
+
     private fun highlightCurrentCourse() {
         // 获取当前时间
         val now = java.time.LocalTime.now()
         val currentPeriod = getCurrentPeriod(now)
-        
+        val currentDay = java.time.LocalDate.now().dayOfWeek.value
+
         // 如果在课程时间范围内，则高亮显示
-        if (currentPeriod > 0) {
-            // TODO: 实现具体的高亮逻辑
+        if (currentPeriod > 0 && currentDay in 1..7) {
+            // 遍历scheduleContainer中的所有子视图
+            for (i in 0 until scheduleContainer.childCount) {
+                val child = scheduleContainer.getChildAt(i)
+                // 新布局结构：课程表主容器是FrameLayout
+                if (child is FrameLayout) {
+                    // 遍历FrameLayout中的所有课程卡片
+                    for (j in 0 until child.childCount) {
+                        val cardView = child.getChildAt(j)
+                        if (cardView is CourseCardView) {
+                            val course = getCourseFromCard(cardView)
+                            if (course != null) {
+                                val isCurrent = course.dayOfWeek == currentDay &&
+                                        currentPeriod >= course.startPeriod &&
+                                        currentPeriod <= course.endPeriod
+                                cardView.setCurrentCourse(isCurrent)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
-    
+
     private fun scrollToCurrentTime() {
         // 获取当前时间
         val now = java.time.LocalTime.now()
         val currentPeriod = getCurrentPeriod(now)
-            
+
         // 如果在课程时间范围内，则滚动到对应位置
         if (currentPeriod > 0) {
-            // 计算滚动位置
-            val scrollY = dpToPx(80 * (currentPeriod - 1))
+            // 计算滚动位置 - 增加额外空间确保当前课程完全可见
+            val scrollY = getPeriodRowHeight() * (currentPeriod - 1) - dpToPx(20)
             scrollView.post {
-                scrollView.smoothScrollTo(0, scrollY)
+                scrollView.smoothScrollTo(0, scrollY.coerceAtLeast(0))
             }
         }
     }
-    
+
     private fun getCurrentWeek(): Int {
         // 获取当前周数（模拟）
         return 1
     }
-    
-    // 添加 FloatingActionButton 用于添加课程
-    private fun addFloatingActionButton() {
-        // 在实际应用中，您可能需要在布局中添加 FAB
-        // 这里我们简化处理，通过菜单或其他方式触发
-    }
-    
-    // 显示添加课程对话框
-    private fun showAddCourseDialog() {
-        val dialog = AddEditCourseDialog(this) { newCourse ->
-            // 添加新课程到列表
-            courseList.add(newCourse)
-            // 重新加载当前周的课程
-            loadScheduleForWeek(currentWeek)
-        }
-        dialog.show()
-    }
-    
-    // 显示编辑课程对话框
-    private fun showEditCourseDialog(course: Course) {
-        val dialog = AddEditCourseDialog(this, course) { updatedCourse ->
-            // 更新课程信息
-            val index = courseList.indexOfFirst { it.id == updatedCourse.id }
-            if (index != -1) {
-                courseList[index] = updatedCourse
-                // 重新加载当前周的课程
-                loadScheduleForWeek(currentWeek)
-            }
-        }
-        dialog.show()
-    }
-    
-    // 删除课程
-    private fun deleteCourse(course: Course) {
-        courseList.remove(course)
-        // 重新加载当前周的课程
-        loadScheduleForWeek(currentWeek)
-    }
-    
+
     private fun getCurrentPeriod(time: java.time.LocalTime): Int {
         // 根据时间判断当前是第几节课
         return when {
@@ -326,13 +325,60 @@ class MainActivity : AppCompatActivity() {
             else -> -1 // 不在课程时间内
         }
     }
-    
+
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density + 0.5f).toInt()
     }
-    
+
+    /**
+     * 根据屏幕密度和设备尺寸计算每节课的行高
+     * 确保在不同设备上都有良好的显示效果
+     */
+    private fun getPeriodRowHeight(): Int {
+        val density = resources.displayMetrics.density
+        val screenHeight = resources.displayMetrics.heightPixels
+
+        // 根据屏幕密度调整基础高度
+        val baseHeight = when {
+            density <= 1.5 -> 70  // ldpi
+            density <= 2.0 -> 75   // mdpi, hdpi
+            density <= 3.0 -> 80   // xhdpi
+            density <= 4.0 -> 85   // xxhdpi
+            else -> 90            // xxxhdpi
+        }
+
+        // 根据屏幕高度调整高度，确保在小屏幕上也能显示足够的内容
+        val screenAdjustedHeight = if (screenHeight < 1280) {
+            // 小屏幕设备适当减小高度
+            (baseHeight * 0.9).toInt()
+        } else {
+            baseHeight
+        }
+
+        return dpToPx(screenAdjustedHeight)
+    }
+
     private fun showCourseDetailDialog(course: Course) {
         val dialog = CourseDetailDialog(this, course)
         dialog.show()
+    }
+
+    /**
+     * 通过反射获取CourseCardView中的课程对象
+     */
+    private fun getCourseFromCard(courseCardView: CourseCardView): Course? {
+        return try {
+            val field = CourseCardView::class.java.getDeclaredField("course")
+            field.isAccessible = true
+            field.get(courseCardView) as? Course
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // 清理定时器
+        handler.removeCallbacks(highlightRunnable)
     }
 }

@@ -5,7 +5,10 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.view.View
 import android.view.Window
+import android.view.animation.Animation
+import android.view.animation.ScaleAnimation
 import android.widget.Button
 import android.widget.TextView
 import com.example.campus_schedule_buddy.R
@@ -23,7 +26,19 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         )
-
+        
+        // 根据系统主题设置对话框背景
+        val isDarkMode = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        if (isDarkMode) {
+            window?.setBackgroundDrawableResource(R.drawable.dialog_background)
+        } else {
+            // 在浅色模式下使用白色背景
+            val whiteBackground = GradientDrawable().apply {
+                setColor(context.getColor(R.color.white))
+                cornerRadius = dpToPx(12).toFloat()
+            }
+            window?.setBackgroundDrawable(whiteBackground)
+        }
         initView()
     }
 
@@ -54,6 +69,9 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
             cornerRadius = dpToPx(12).toFloat()
         }
         courseTypeBadge.background = badgeDrawable
+        
+        // 根据系统主题设置文字颜色
+        updateTextColors(courseNameTextView, teacherTextView, locationTextView, timeTextView, weekPatternTextView, noteTextView, noteLabel)
 
         // 设置上课时间
         val weekdays = arrayOf("", "周一", "周二", "周三", "周四", "周五", "周六", "周日")
@@ -72,29 +90,124 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
 
         // 设置按钮点击事件
         editButton.setOnClickListener {
+            // 添加按钮点击动画效果
+            addButtonClickEffect(editButton)
             // 启动编辑功能
             startEditCourse()
         }
 
         deleteButton.setOnClickListener {
+            // 添加按钮点击动画效果
+            addButtonClickEffect(deleteButton)
             // 删除课程
             deleteCourse()
         }
 
         cancelButton.setOnClickListener {
+            // 添加按钮点击动画效果
+            addButtonClickEffect(cancelButton)
             dismiss()
         }
+        
+        // 添加弹窗显示动画
+        addDialogShowAnimation()
     }
-
-    private fun getCourseTypeInfo(type: String): Pair<String, Int> {
+    
+    /**
+     * 为按钮添加点击动画效果
+     */
+    private fun addButtonClickEffect(button: Button) {
+        val scaleAnimation = ScaleAnimation(
+            1f, 0.95f, 1f, 0.95f,
+            Animation.RELATIVE_TO_SELF, 0.5f,
+            Animation.RELATIVE_TO_SELF, 0.5f
+        )
+        scaleAnimation.duration = 100
+        scaleAnimation.fillAfter = false
+        
+        val restoreAnimation = ScaleAnimation(
+            0.95f, 1f, 0.95f, 1f,
+            Animation.RELATIVE_TO_SELF, 0.5f,
+            Animation.RELATIVE_TO_SELF, 0.5f
+        )
+        restoreAnimation.duration = 100
+        restoreAnimation.fillAfter = false
+        
+        scaleAnimation.setAnimationListener(object : Animation.AnimationListener {
+            override fun onAnimationStart(animation: Animation?) {}
+            
+            override fun onAnimationRepeat(animation: Animation?) {}
+            
+            override fun onAnimationEnd(animation: Animation?) {
+                button.startAnimation(restoreAnimation)
+            }
+        })
+        
+        button.startAnimation(scaleAnimation)
+    }
+    
+    /**
+     * 为弹窗添加显示动画
+     */
+    private fun addDialogShowAnimation() {
+        val rootView = findViewById<View>(android.R.id.content)
+        if (rootView != null) {
+            val scaleAnimation = ScaleAnimation(
+                0.8f, 1f, 0.8f, 1f,
+                Animation.RELATIVE_TO_SELF, 0.5f,
+                Animation.RELATIVE_TO_SELF, 0.5f
+            )
+            scaleAnimation.duration = 300
+            rootView.startAnimation(scaleAnimation)
+        }
+    }
+    
+    /**
+     * 根据系统主题更新文字颜色
+     */
+    private fun updateTextColors(
+        courseNameTextView: TextView,
+        teacherTextView: TextView,
+        locationTextView: TextView,
+        timeTextView: TextView,
+        weekPatternTextView: TextView,
+        noteTextView: TextView?,
+        noteLabel: TextView?
+    ) {
+        val isDarkMode = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        
+        // 在浅色模式下，将所有文本设置为黑色以确保良好的可读性
+        val blackColor = context.getColor(R.color.black)
+        val whiteColor = context.getColor(R.color.white)
+        
+        val primaryTextColor = if (isDarkMode) {
+            whiteColor
+        } else {
+            blackColor
+        }
+        
+        val secondaryTextColor = if (isDarkMode) {
+            context.getColor(R.color.dark_text_secondary)
+        } else {
+            blackColor
+        }
+        
+        courseNameTextView.setTextColor(primaryTextColor)
+        teacherTextView.setTextColor(primaryTextColor)
+        locationTextView.setTextColor(secondaryTextColor)
+        timeTextView.setTextColor(secondaryTextColor)
+        weekPatternTextView.setTextColor(secondaryTextColor)
+        noteTextView?.setTextColor(secondaryTextColor)
+        noteLabel?.setTextColor(primaryTextColor)
+    }    private fun getCourseTypeInfo(type: String): Pair<String, Int> {
+        // 使用文档中定义的课程类型色彩映射
         return when (type) {
-            "major_required" -> Pair("必修", Color.parseColor("#4cc9f0"))
-            "major_elective" -> Pair("专选", Color.parseColor("#7209b7"))
-            "public_required" -> Pair("公必", Color.parseColor("#f72585"))
-            "public_elective" -> Pair("公选", Color.parseColor("#4895ef"))
-            "experiment" -> Pair("实验", Color.parseColor("#72efdd"))
-            "pe" -> Pair("体育", Color.parseColor("#4361ee"))
-            else -> Pair("未知", Color.parseColor("#4cc9f0"))
+            "pe" -> Pair("体育", Color.parseColor("#4cc9f0"))       // 天蓝：活力/放松
+            "major_required" -> Pair("专业必修", Color.parseColor("#4361ee")) // 蓝色：重要/严肃
+            "major_elective" -> Pair("专业选修", Color.parseColor("#7209b7")) // 紫色：探索/兴趣
+            "public_required" -> Pair("公共必修", Color.parseColor("#f72585")) // 粉红：基础/普及
+            "experiment" -> Pair("实验课", Color.parseColor("#72efdd"))   // 青绿：实践/动手
+            else -> Pair("其他", context.getColor(R.color.course_major_required))
         }
     }
 
