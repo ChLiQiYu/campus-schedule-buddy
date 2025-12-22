@@ -3,6 +3,8 @@
     <style name="Base.Theme.Campusschedulebuddy" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="textColorPrimary">@color/light_text_primary</item>
+        <item name="textColorSecondary">@color/light_text_secondary</item>
     </style>
 
     <style name="Theme.Campusschedulebuddy" parent="Base.Theme.Campusschedulebuddy" />

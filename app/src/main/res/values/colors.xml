@@ -2,4 +2,31 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- 课程类型色彩映射 -->
+    <color name="course_major_required">#FF4361ee</color> <!-- 蓝色：重要/严肃 -->
+    <color name="course_major_elective">#FF7209b7</color> <!-- 紫色：探索/兴趣 -->
+    <color name="course_public_required">#FFf72585</color> <!-- 粉红：基础/普及 -->
+    <color name="course_experiment">#FF72efdd</color> <!-- 青绿：实践/动手 -->
+    <color name="course_pe">#FF4cc9f0</color> <!-- 天蓝：活力/放松 -->
+    
+    <!-- 深色模式背景色 -->
+    <color name="dark_background">#FF121212</color>
+    <color name="dark_surface">#FF1E1E1E</color>
+    <color name="dialog_background">#FF2A2A2A</color>
+    
+    <!-- 浅色模式背景色 -->
+    <color name="light_background">#FFF8F9FA</color>
+    <color name="light_surface">#FFFFFFFF</color>
+    <color name="dialog_background_light">#FFFFFFFF</color>
+    
+    <!-- 文字颜色 -->
+    <color name="dark_text_primary">#FFFFFFFF</color>
+    <color name="dark_text_secondary">#FFB3B3B3</color>
+    <color name="light_text_primary">#FF121212</color>
+    <color name="light_text_secondary">#FF666666</color>
+    
+    <!-- 标题栏颜色 -->
+    <color name="dark_title">#FF1E1E1E</color>
+    <color name="light_title">#FFF0F0F0</color>
 </resources>

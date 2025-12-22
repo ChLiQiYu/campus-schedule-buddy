@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,7 +18,8 @@
             android:layout_weight="1"
             android:text="课程名称"
             android:textSize="20sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:textColor="?attr/textColorPrimary" />
 
         <TextView
             android:id="@+id/tv_course_type_badge"
@@ -30,7 +31,8 @@
             android:paddingBottom="4dp"
             android:text="必修"
             android:textColor="@android:color/white"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:layout_marginStart="16dp" />
 
     </LinearLayout>
 
@@ -40,7 +42,9 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="教师姓名"
-        android:textSize="16sp" />
+        android:textSize="18sp"
+        android:textStyle="normal"
+        android:textColor="?attr/textColorPrimary" />
 
     <TextView
         android:id="@+id/tv_location"
@@ -48,8 +52,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="上课地点"
-        android:textSize="14sp"
-        android:textColor="#6c757d" />
+        android:textSize="16sp"
+        android:textColor="?attr/textColorSecondary" />
 
     <TextView
         android:id="@+id/tv_time"
@@ -57,8 +61,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="上课时间"
-        android:textSize="14sp"
-        android:textColor="#6c757d" />
+        android:textSize="16sp"
+        android:textColor="?attr/textColorSecondary" />
 
     <TextView
         android:id="@+id/tv_week_pattern"
@@ -66,8 +70,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="周数模式"
-        android:textSize="14sp"
-        android:textColor="#6c757d" />
+        android:textSize="16sp"
+        android:textColor="?attr/textColorSecondary" />
 
     <TextView
         android:id="@+id/tv_note_label"
@@ -75,16 +79,18 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="备注:"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="?attr/textColorPrimary" />
 
     <TextView
         android:id="@+id/tv_note"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="8dp"
         android:text="备注内容"
-        android:textSize="14sp" />
+        android:textSize="16sp"
+        android:textColor="?attr/textColorSecondary" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -99,7 +105,9 @@
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
             android:text="编辑"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            style="@style/Widget.MaterialComponents.Button"
+            android:padding="12dp"
+            android:elevation="6dp" />
 
         <Button
             android:id="@+id/btn_delete"
@@ -109,7 +117,10 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:text="删除"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            style="@style/Widget.MaterialComponents.Button"
+            android:padding="12dp"
+            android:elevation="6dp"
+            android:backgroundTint="#FF0000" />
 
         <Button
             android:id="@+id/btn_cancel"
@@ -118,7 +129,9 @@
             android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:text="取消"
-            style="@style/Widget.MaterialComponents.Button" />
+            style="@style/Widget.MaterialComponents.Button"
+            android:padding="12dp"
+            android:elevation="6dp" />
 
     </LinearLayout>
 

@@ -3,5 +3,7 @@
     <style name="Base.Theme.Campusschedulebuddy" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <item name="textColorPrimary">@color/dark_text_primary</item>
+        <item name="textColorSecondary">@color/dark_text_secondary</item>
     </style>
 </resources>
