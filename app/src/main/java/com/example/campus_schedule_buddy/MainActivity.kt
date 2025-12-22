@@ -6,6 +6,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -115,45 +116,69 @@ class MainActivity : AppCompatActivity() {
             coursesByDay[course.dayOfWeek]?.add(course)
         }
         
-        // 创建8个时间段的视图（1-8节）
-        for (period in 1..8) {
-            val periodRow = createPeriodRow(period, coursesByDay)
+        // 创建8个时间段的视图（1-8节），同时处理跨越多节的课程
+        var currentPeriod = 1
+        while (currentPeriod <= 8) {
+            // 检查是否有课程从当前节次开始且跨越多个节次
+            val startingCourses = mutableMapOf<Int, Course>()
+            for (day in 1..7) {
+                val course = coursesByDay[day]?.find { it.startPeriod == currentPeriod }
+                if (course != null) {
+                    startingCourses[day] = course
+                }
+            }
+            
+            // 获取在当前节次的课程的最大跨度
+            var maxSpan = 1 // 至少是单节课
+            for (day in 1..7) {
+                val course = coursesByDay[day]?.find { it.startPeriod <= currentPeriod && it.endPeriod >= currentPeriod }
+                if (course != null) {
+                    val span = course.endPeriod - course.startPeriod + 1
+                    val startPeriodInSpan = currentPeriod - course.startPeriod + 1
+                    if (startPeriodInSpan <= span) {
+                        maxSpan = maxOf(maxSpan, span - startPeriodInSpan + 1)
+                    }
+                }
+            }
+            
+            // 创建该节次行（或跨越多节的行）
+            val periodRow = createPeriodRow(currentPeriod, coursesByDay, maxSpan)
             scheduleContainer.addView(periodRow)
+            
+            // 根据最大跨度跳过已经显示的节次
+            currentPeriod += maxSpan
         }
         
         // 高亮当前时间的课程
         highlightCurrentCourse()
     }
     
-    private fun createPeriodRow(period: Int, coursesByDay: Map<Int, List<Course>>): View {
+    private fun createPeriodRow(startPeriod: Int, coursesByDay: Map<Int, List<Course>>, spanCount: Int = 1): View {
         val rowLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dpToPx(80) // 70dp高度 + 10dp间隔
+                dpToPx(80 * spanCount) // 根据跨越节次数计算高度
             )
         }
         
-        // 时间列
+        // 时间列 - 只显示起始节次，其他节次留空
         val timeColumn = TextView(this).apply {
-            text = "第${period}节"
+            text = "第${startPeriod}节"
             textSize = 12f
             gravity = android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.END
-            setPadding(0, 0, dpToPx(4), 0) // 右侧内边距
+            setPadding(0, 0, dpToPx(4), 0)
             layoutParams = LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 1f
             )
         }
-        
         rowLayout.addView(timeColumn)
         
         // 为周一到周日创建列
         for (day in 1..7) {
-            val cellLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = android.view.Gravity.CENTER_HORIZONTAL
+            val cellLayout = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -161,51 +186,56 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             
-            // 查找当天该节次的课程
+            // 查找当天该节次（或跨越该节次）的课程
             val courseForThisSlot = coursesByDay[day]?.find { 
-                period >= it.startPeriod && period <= it.endPeriod 
+                startPeriod >= it.startPeriod && startPeriod <= it.endPeriod
             }
             
-            if (courseForThisSlot != null) {
-                // 检查当前节次是否是课程的起始节次
-                if (period == courseForThisSlot.startPeriod) { 
-                    // 只在第一节添加卡片
-                    val courseCard = CourseCardView(this)
-                    courseCard.setCourse(courseForThisSlot)
-                    
-                    // 设置课程卡片的大小以适应多个节次
-                    val span = courseForThisSlot.endPeriod - courseForThisSlot.startPeriod + 1
-                    courseCard.layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        dpToPx(70 * span + 10 * (span - 1)) // 高度适应节次跨度
-                    )
-                    
-                    // 设置是否为跨越多个节次的卡片
-                    val isSpanning = courseForThisSlot.endPeriod > courseForThisSlot.startPeriod
-                    courseCard.setIsSpanning(isSpanning)
-                    
-                    // 添加点击事件，显示课程详情
-                    courseCard.setOnClickListener {
-                        showCourseDetailDialog(courseForThisSlot)
-                    }
-                    
-                    cellLayout.addView(courseCard)
-                } else {
-                    // 对于非起始节次，添加一个不可见的占位视图以保持布局正确
-                    val placeholder = View(this)
-                    placeholder.visibility = View.INVISIBLE
-                    cellLayout.addView(placeholder)
+            if (courseForThisSlot != null && startPeriod == courseForThisSlot.startPeriod) {
+                // 在课程的起始节次添加卡片
+                val courseCard = CourseCardView(this)
+                courseCard.setCourse(courseForThisSlot)
+                
+                // 计算课程跨越的节次数
+                val span = courseForThisSlot.endPeriod - courseForThisSlot.startPeriod + 1
+                
+                // 设置卡片布局参数
+                courseCard.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(70 * span + 10 * (span - 1)) // 卡片高度
+                ).apply {
+                    gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
                 }
-            } else {
-                // 无课程时段显示
+                
+                // 设置是否为跨越多个节次的卡片
+                courseCard.setIsSpanning(span > 1)
+                
+                // 添加点击事件
+                courseCard.setOnClickListener {
+                    showCourseDetailDialog(courseForThisSlot)
+                }
+                
+                cellLayout.addView(courseCard)
+                
+                // 启动入场动画
+                val delay = ((day - 1) * 50L + (courseForThisSlot.startPeriod - 1) * 30L)
+                courseCard.startEntranceAnimation(delay)
+            } else if (courseForThisSlot == null) {
+                // 无课程时段
                 val noCourseText = TextView(this).apply {
-                    text = "无课程"
+                    text = if (spanCount == 1) "无课程" else ""
                     textSize = 12f
                     setTextColor(android.graphics.Color.GRAY)
                     gravity = android.view.Gravity.CENTER
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                    )
                 }
                 cellLayout.addView(noCourseText)
             }
+            // 如果courseForThisSlot != null 但 startPeriod != courseForThisSlot.startPeriod，
+            // 说明这个位置在课程卡片内，不显示任何内容
             
             rowLayout.addView(cellLayout)
         }
@@ -298,7 +328,7 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun dpToPx(dp: Int): Int {
-        return (dp * resources.displayMetrics.density).toInt()
+        return (dp * resources.displayMetrics.density + 0.5f).toInt()
     }
     
     private fun showCourseDetailDialog(course: Course) {
