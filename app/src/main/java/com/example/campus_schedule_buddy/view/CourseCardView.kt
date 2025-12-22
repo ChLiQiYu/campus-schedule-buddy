@@ -22,6 +22,8 @@ class CourseCardView @JvmOverloads constructor(
     private val teacherTextView: TextView
     private val locationTextView: TextView
     private val periodTextView: TextView
+    private var isPressed = false
+    private var originalElevation = 0f
 
     init {
         orientation = VERTICAL
@@ -33,28 +35,32 @@ class CourseCardView @JvmOverloads constructor(
             dpToPx(4)
         )
 
-        // 设置圆角和阴影效果
-        setBackgroundResource(R.drawable.course_card_background)
+        // 设置初始背景
+        setBackgroundResource(android.R.color.transparent)
 
         // 初始化子视图
         courseNameTextView = TextView(context).apply {
-            setTextSize(12f)  // 适中的字体大小
+            setTextSize(14f)  // 增大课程名称字体
             setTextColor(Color.WHITE)
             setSingleLine(false)
             maxLines = 2
             ellipsize = android.text.TextUtils.TruncateAt.END
+            // 添加字体粗细和字母间距
+            setLetterSpacing(0.01f)
         }
 
         teacherTextView = TextView(context).apply {
-            setTextSize(10f)  // 适中的字体大小
+            setTextSize(12f)  // 增大教师姓名字体
             setTextColor(Color.WHITE)
             setSingleLine(false)
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
+            // 添加轻微的字母间距
+            setLetterSpacing(0.005f)
         }
 
         locationTextView = TextView(context).apply {
-            setTextSize(9f)  // 适中的字体大小
+            setTextSize(11f)  // 增大地点信息字体
             setTextColor(Color.WHITE)
             setSingleLine(false)
             maxLines = 1
@@ -72,6 +78,37 @@ class CourseCardView @JvmOverloads constructor(
         addView(teacherTextView)
         addView(locationTextView)
         addView(periodTextView)
+        
+        // 保存原始elevation值
+        originalElevation = elevation
+        
+        // 添加触摸监听器实现按压效果
+        setOnTouchListener { _, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    isPressed = true
+                    // 减小elevation创建按下效果
+                    elevation = originalElevation * 0.5f
+                    // 缩小视图创建按下效果
+                    scaleX = 0.98f
+                    scaleY = 0.98f
+                }
+                android.view.MotionEvent.ACTION_UP,
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    isPressed = false
+                    // 恢复elevation
+                    elevation = originalElevation
+                    // 恢复视图大小
+                    scaleX = 1.0f
+                    scaleY = 1.0f
+                }
+            }
+            false // 返回false以允许点击事件继续传播
+        }
+        
+        // 设置初始状态用于入场动画
+        alpha = 0f
+        translationY = dpToPx(20).toFloat()
     }
 
     fun setCourse(course: Course) {
@@ -104,6 +141,20 @@ class CourseCardView @JvmOverloads constructor(
             // 可以在这里添加特殊的样式处理
         }
     }
+    
+    /**
+     * 启动卡片入场动画
+     */
+    fun startEntranceAnimation(delay: Long = 0) {
+        postDelayed({
+            animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(300) // 300ms动画时长
+                .setInterpolator(android.view.animation.OvershootInterpolator())
+                .start()
+        }, delay)
+    }
 
     private fun setBackgroundColorByCourseType(type: String) {
         val color = when (type) {
@@ -116,16 +167,19 @@ class CourseCardView @JvmOverloads constructor(
             else -> Color.parseColor("#4cc9f0") // 默认颜色
         }
 
-        // 创建带圆角的背景
+        // 创建带圆角和阴影的背景
         val drawable = GradientDrawable().apply {
             setColor(color)
-            cornerRadius = dpToPx(12).toFloat()
+            cornerRadius = dpToPx(16).toFloat() // 增加圆角半径到16dp
         }
         
         background = drawable
+        
+        // 添加阴影效果
+        elevation = dpToPx(3).toFloat()
     }
 
     private fun dpToPx(dp: Int): Int {
-        return (dp * context.resources.displayMetrics.density).toInt()
+        return (dp * context.resources.displayMetrics.density + 0.5f).toInt()
     }
 }
