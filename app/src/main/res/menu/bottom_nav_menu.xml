@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigation_schedule"
+        android:icon="@drawable/ic_schedule"
+        android:title="课程表" />
+
+    <item
+        android:id="@+id/navigation_partners"
+        android:icon="@drawable/ic_partners"
+        android:title="学习伙伴"
+        android:enabled="false" />
+
+    <item
+        android:id="@+id/navigation_profile"
+        android:icon="@drawable/ic_profile"
+        android:title="我的" />
+</menu>
