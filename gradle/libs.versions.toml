@@ -1,5 +1,5 @@
 [versions]
-agp = "9.0.0-beta03"
+agp = "8.13.2"
 coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
@@ -9,6 +9,7 @@ material = "1.13.0"
 activity = "1.12.2"
 constraintlayout = "2.2.1"
 textVertical = "1.0.0-alpha02"
+kotlin = "2.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -23,4 +24,5 @@ androidx-text-vertical = { group = "androidx.text", name = "text-vertical", vers
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 
