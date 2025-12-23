@@ -9,7 +9,7 @@ material = "1.13.0"
 activity = "1.12.2"
 constraintlayout = "2.2.1"
 textVertical = "1.0.0-alpha02"
-kotlin = "2.2.0"
+kotlin = "2.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
