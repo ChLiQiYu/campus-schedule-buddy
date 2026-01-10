@@ -173,4 +173,16 @@
         android:background="?android:attr/windowBackground"
         app:menu="@menu/bottom_nav_menu" />
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add_course"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="72dp"
+        android:contentDescription="添加课程"
+        app:srcCompat="@drawable/ic_add"
+        app:tint="@android:color/white" />
+
 </RelativeLayout>

@@ -13,7 +13,7 @@ object TestUtils {
     fun getTestCourses(): List<Course> {
         return listOf(
             Course(
-                id = 1,
+                id = 1L,
                 name = "高等数学",
                 teacher = "张教授",
                 location = "教学楼A-301",
@@ -24,7 +24,7 @@ object TestUtils {
                 weekPattern = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
             ),
             Course(
-                id = 2,
+                id = 2L,
                 name = "大学英语",
                 teacher = "李老师",
                 location = "外语楼-205",
@@ -35,7 +35,7 @@ object TestUtils {
                 weekPattern = listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16)
             ),
             Course(
-                id = 3,
+                id = 3L,
                 name = "数据结构",
                 teacher = "王教授",
                 location = "计算机楼-401",
