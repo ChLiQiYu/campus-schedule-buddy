@@ -15,8 +15,35 @@
         android:layout_alignParentTop="true"
         android:background="?attr/colorPrimary"
         android:elevation="4dp"
-        app:title="CourseBuddy"
+        app:title=""
         app:titleTextColor="@android:color/white">
+
+        <LinearLayout
+            android:id="@+id/layout_title_info"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:layout_marginStart="12dp"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_title_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2026年1月10日"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_title_week_day"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="第1周 星期六"
+                android:textColor="@android:color/white"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -71,7 +98,7 @@
     <LinearLayout
         android:id="@+id/week_header"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="52dp"
         android:layout_below="@id/toolbar"
         android:orientation="horizontal">
 
@@ -82,65 +109,163 @@
             android:layout_height="match_parent"
             android:layout_weight="0"
             android:gravity="center"
-            android:text=""
+            android:text="时间"
             android:textStyle="bold" />
 
         <!-- 周一到周日 -->
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="周一"
-            android:textStyle="bold" />
+            android:orientation="vertical">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="周二"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/tv_day_mon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="周一"
+                android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="周三"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/tv_date_mon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/10"
+                android:textSize="12sp" />
+        </LinearLayout>
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="周四"
-            android:textStyle="bold" />
+            android:orientation="vertical">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="周五"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/tv_day_tue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="周二"
+                android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="周六"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/tv_date_tue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/11"
+                android:textSize="12sp" />
+        </LinearLayout>
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="周日"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_day_wed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="周三"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_date_wed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/12"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_day_thu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="周四"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_date_thu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/13"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_day_fri"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="周五"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_date_fri"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/14"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_day_sat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="周六"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_date_sat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/15"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_day_sun"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="周日"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_date_sun"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/16"
+                android:textSize="12sp" />
+        </LinearLayout>
 
     </LinearLayout>
 

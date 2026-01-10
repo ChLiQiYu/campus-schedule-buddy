@@ -1,0 +1,59 @@
+package com.example.campus_schedule_buddy.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
+import com.example.campus_schedule_buddy.data.CourseTypeReminderEntity
+import com.example.campus_schedule_buddy.data.PeriodTimeEntity
+import com.example.campus_schedule_buddy.data.ReminderSettingsEntity
+import com.example.campus_schedule_buddy.data.SettingsRepository
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+
+class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
+    val semesterStartDate = repository.observeSemesterStartDate().asLiveData()
+    val periodTimes = repository.periodTimes.asLiveData()
+    val reminderSettings = repository.reminderSettings.asLiveData()
+    val typeReminders = repository.courseTypeReminders.asLiveData()
+
+    fun ensureDefaults() {
+        viewModelScope.launch {
+            repository.ensureDefaults()
+        }
+    }
+
+    fun updateSemesterStart(date: LocalDate) {
+        viewModelScope.launch {
+            repository.updateSemesterStart(date)
+        }
+    }
+
+    fun updatePeriodTimes(times: List<PeriodTimeEntity>) {
+        viewModelScope.launch {
+            repository.updatePeriodTimes(times)
+        }
+    }
+
+    fun updateReminderSettings(settings: ReminderSettingsEntity) {
+        viewModelScope.launch {
+            repository.updateReminderSettings(settings)
+        }
+    }
+
+    fun updateTypeReminders(items: List<CourseTypeReminderEntity>) {
+        viewModelScope.launch {
+            repository.updateCourseTypeReminders(items)
+        }
+    }
+}
+
+class SettingsViewModelFactory(private val repository: SettingsRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return SettingsViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}

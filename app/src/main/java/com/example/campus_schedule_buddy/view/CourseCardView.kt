@@ -51,22 +51,22 @@ class CourseCardView @JvmOverloads constructor(
 
         // 优化课程名称显示 - 每行3个中文，最多3行
         courseNameTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(14f, true, 3, 3) // 14sp, 加粗, 每行3中文, 最多3行
+            setupForChineseText(12f, true, 3, 4) // 12sp, 加粗, 每行3中文, 最多4行
         }
 
         // 优化教师姓名显示 - 每行3个中文，最多1行
         teacherTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(12f, false, 3, 1) // 12sp, 不加粗, 每行3中文, 最多1行
+            setupForChineseText(10f, false, 3, 3) // 10sp, 不加粗, 每行3中文, 最多3行
         }
 
         // 优化地点信息显示 - 每行3个中文，最多1行
         locationTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(12f, false, 3, 1) // 12sp, 不加粗, 每行3中文, 最多1行
+            setupForChineseText(10f, false, 3, 3) // 10sp, 不加粗, 每行3中文, 最多3行
         }
 
         // 优化节次和周数信息显示 - 每行3个中文，最多2行
         periodTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(10f, false, 3, 2) // 10sp, 不加粗, 每行3中文, 最多2行
+            setupForChineseText(9f, false, 3, 2) // 9sp, 不加粗, 每行3中文, 最多2行
             // 确保文本在视图中垂直居下对齐
             gravity = Gravity.BOTTOM or Gravity.END
         }
