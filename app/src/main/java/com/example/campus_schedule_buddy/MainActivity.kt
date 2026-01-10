@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCurrentWeek: TextView
     private lateinit var btnPreviousWeek: ImageButton
     private lateinit var btnNextWeek: ImageButton
-    private lateinit var btnToday: TextView
+    private lateinit var btnSettings: ImageButton
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var fabAddCourse: FloatingActionButton
@@ -108,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         tvCurrentWeek = findViewById(R.id.tv_current_week)
         btnPreviousWeek = findViewById(R.id.btn_previous_week)
         btnNextWeek = findViewById(R.id.btn_next_week)
-        btnToday = findViewById(R.id.btn_today)
+        btnSettings = findViewById(R.id.btn_settings)
         scheduleContainer = findViewById(R.id.schedule_container)
         scrollView = findViewById(R.id.scrollView)
         fabAddCourse = findViewById(R.id.fab_add_course)
@@ -147,12 +147,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        btnToday.setOnClickListener {
-            currentWeek = getCurrentWeek()
-            updateWeekDisplay()
-            loadScheduleForWeek(currentWeek)
-            // 滚动到当前时间
-            scrollToCurrentTime()
+        btnSettings.setOnClickListener {
+            startActivity(android.content.Intent(this, SettingsActivity::class.java))
         }
 
         fabAddCourse.setOnClickListener {
@@ -166,10 +162,7 @@ class MainActivity : AppCompatActivity() {
 
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.navigation_profile -> {
-                    startActivity(android.content.Intent(this, SettingsActivity::class.java))
-                    true
-                }
+                R.id.navigation_profile -> true
                 else -> true
             }
         }
@@ -343,8 +336,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateTitleInfo() {
-        val todayDayIndex = LocalDate.now().dayOfWeek.value
-        val displayDate = getWeekStartDate(currentWeek).plusDays((todayDayIndex - 1).toLong())
+        val today = LocalDate.now()
+        val todayDayIndex = today.dayOfWeek.value
         val weekDayName = when (todayDayIndex) {
             1 -> "星期一"
             2 -> "星期二"
@@ -354,8 +347,8 @@ class MainActivity : AppCompatActivity() {
             6 -> "星期六"
             else -> "星期日"
         }
-        titleDate.text = "${displayDate.year}年${displayDate.monthValue}月${displayDate.dayOfMonth}日"
-        titleWeekDay.text = "第${currentWeek}周 $weekDayName"
+        titleDate.text = "${today.year}年${today.monthValue}月${today.dayOfMonth}日"
+        titleWeekDay.text = "第${getCurrentWeek()}周 $weekDayName"
     }
 
     private fun setupGestureDetector() {
