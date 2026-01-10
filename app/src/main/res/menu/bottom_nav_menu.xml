@@ -8,8 +8,7 @@
     <item
         android:id="@+id/navigation_partners"
         android:icon="@drawable/ic_partners"
-        android:title="学习伙伴"
-        android:enabled="false" />
+        android:title="学习伙伴" />
 
     <item
         android:id="@+id/navigation_profile"
