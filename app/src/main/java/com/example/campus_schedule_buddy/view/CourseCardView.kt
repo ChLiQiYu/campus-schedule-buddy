@@ -137,10 +137,10 @@ class CourseCardView @JvmOverloads constructor(
         courseNameTextView.text = course.name
 
         // 优化教师姓名显示
-        teacherTextView.text = course.teacher
+        teacherTextView.text = course.teacher ?: ""
 
         // 优化地点信息显示
-        locationTextView.text = course.location
+        locationTextView.text = course.location ?: ""
 
         // 格式化周数显示，确保在有限空间内完整显示
         val weekText = if (course.weekPattern.size > 1) {
@@ -153,7 +153,7 @@ class CourseCardView @JvmOverloads constructor(
         periodTextView.text = "${course.startPeriod}-${course.endPeriod}节 · $weekText"
 
         // 设置背景颜色
-        setBackgroundColorByCourseType(course.type)
+        setBackgroundColorByCourse(course)
 
         // 根据系统主题更新文字颜色
         updateTextColors()
@@ -190,8 +190,8 @@ class CourseCardView @JvmOverloads constructor(
     /**
      * 设置背景颜色
      */
-    private fun setBackgroundColorByCourseType(type: String) {
-        val color = when (type) {
+    private fun setBackgroundColorByCourse(course: Course) {
+        val fallbackColor = when (course.type) {
             "major_required" -> ContextCompat.getColor(context, R.color.course_major_required)
             "major_elective" -> ContextCompat.getColor(context, R.color.course_major_elective)
             "public_required" -> ContextCompat.getColor(context, R.color.course_public_required)
@@ -199,6 +199,7 @@ class CourseCardView @JvmOverloads constructor(
             "pe" -> ContextCompat.getColor(context, R.color.course_pe)
             else -> ContextCompat.getColor(context, R.color.course_major_required)
         }
+        val color = course.color ?: fallbackColor
 
         // 创建带圆角和阴影的背景
         val drawable = GradientDrawable().apply {

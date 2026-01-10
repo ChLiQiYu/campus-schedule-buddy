@@ -7,22 +7,25 @@ import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.LinearLayout
+import android.widget.Toast
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.campus_schedule_buddy.model.Course
-import com.example.campus_schedule_buddy.util.MockData
+import com.example.campus_schedule_buddy.data.AppDatabase
+import com.example.campus_schedule_buddy.data.CourseRepository
 import com.example.campus_schedule_buddy.view.CourseCardView
 import com.example.campus_schedule_buddy.view.CourseDetailDialog
 import com.example.campus_schedule_buddy.view.AddEditCourseDialog
-import java.time.LocalDate
-import java.time.temporal.WeekFields
-import java.util.Locale
 import android.os.Handler
 import android.os.Looper
-import android.widget.RelativeLayout
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.activity.enableEdgeToEdge
 
 class MainActivity : AppCompatActivity() {
@@ -33,12 +36,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnToday: TextView
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
+    private lateinit var fabAddCourse: FloatingActionButton
 
     private var currentWeek = 1
     private val totalWeeks = 20
 
     // 用于存储课程数据
     private val courseList = mutableListOf<Course>()
+    private lateinit var repository: CourseRepository
 
     // 用于定期更新当前课程高亮状态
     private val handler = Handler(Looper.getMainLooper())
@@ -62,7 +67,7 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
         setupListeners()
-        loadScheduleForWeek(currentWeek)
+        setupRepository()
 
         // 启动定时器定期更新当前课程高亮状态
         handler.post(highlightRunnable)
@@ -75,6 +80,7 @@ class MainActivity : AppCompatActivity() {
         btnToday = findViewById(R.id.btn_today)
         scheduleContainer = findViewById(R.id.schedule_container)
         scrollView = findViewById(R.id.scrollView)
+        fabAddCourse = findViewById(R.id.fab_add_course)
     }
 
     private fun setupListeners() {
@@ -101,6 +107,10 @@ class MainActivity : AppCompatActivity() {
             // 滚动到当前时间
             scrollToCurrentTime()
         }
+
+        fabAddCourse.setOnClickListener {
+            showAddCourseDialog()
+        }
     }
 
     private fun updateWeekDisplay() {
@@ -119,13 +129,7 @@ class MainActivity : AppCompatActivity() {
         updateBackgroundColor()
 
         // 获取该周的课程数据
-        val courses = if (courseList.isEmpty()) {
-            // 如果没有自定义课程，使用假数据
-            MockData.getMockCourses(week)
-        } else {
-            // 使用自定义课程数据
-            courseList.filter { it.weekPattern.contains(week) }
-        }
+        val courses = courseList.filter { it.weekPattern.contains(week) }
 
         // 创建课程表主容器（使用FrameLayout实现绝对定位）
         val scheduleFrameLayout = FrameLayout(this).apply {
@@ -359,7 +363,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCourseDetailDialog(course: Course) {
-        val dialog = CourseDetailDialog(this, course)
+        val dialog = CourseDetailDialog(
+            this,
+            course,
+            onEdit = { selected -> showEditCourseDialog(selected) },
+            onDelete = { selected -> deleteCourse(selected) }
+        )
         dialog.show()
     }
 
@@ -373,6 +382,66 @@ class MainActivity : AppCompatActivity() {
             field.get(courseCardView) as? Course
         } catch (e: Exception) {
             null
+        }
+    }
+
+    private fun setupRepository() {
+        val database = AppDatabase.getInstance(this)
+        repository = CourseRepository(database.courseDao())
+        lifecycleScope.launch {
+            repository.coursesFlow.collect { courses ->
+                courseList.clear()
+                courseList.addAll(courses)
+                updateWeekDisplay()
+                loadScheduleForWeek(currentWeek)
+            }
+        }
+    }
+
+    private fun showAddCourseDialog() {
+        val dialog = AddEditCourseDialog(this, null) { course, callback ->
+            lifecycleScope.launch {
+                val result = repository.addCourse(course)
+                withContext(Dispatchers.Main) {
+                    when (result) {
+                        is CourseRepository.SaveResult.Success -> {
+                            callback(AddEditCourseDialog.SaveFeedback(true))
+                        }
+                        is CourseRepository.SaveResult.Error -> {
+                            callback(AddEditCourseDialog.SaveFeedback(false, result.message))
+                        }
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showEditCourseDialog(course: Course) {
+        val dialog = AddEditCourseDialog(this, course) { updated, callback ->
+            lifecycleScope.launch {
+                val result = repository.updateCourse(updated)
+                withContext(Dispatchers.Main) {
+                    when (result) {
+                        is CourseRepository.SaveResult.Success -> {
+                            callback(AddEditCourseDialog.SaveFeedback(true))
+                        }
+                        is CourseRepository.SaveResult.Error -> {
+                            callback(AddEditCourseDialog.SaveFeedback(false, result.message))
+                        }
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun deleteCourse(course: Course) {
+        lifecycleScope.launch {
+            repository.deleteCourse(course)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "课程已删除", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

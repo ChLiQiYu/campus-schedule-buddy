@@ -1,5 +1,6 @@
 package com.example.campus_schedule_buddy.view
 
+import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
@@ -14,7 +15,12 @@ import android.widget.TextView
 import com.example.campus_schedule_buddy.R
 import com.example.campus_schedule_buddy.model.Course
 
-class CourseDetailDialog(context: Context, private val course: Course) : Dialog(context) {
+class CourseDetailDialog(
+    context: Context,
+    private val course: Course,
+    private val onEdit: (Course) -> Unit,
+    private val onDelete: (Course) -> Unit
+) : Dialog(context) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +56,8 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
         val locationTextView = findViewById<TextView>(R.id.tv_location)
         val timeTextView = findViewById<TextView>(R.id.tv_time)
         val weekPatternTextView = findViewById<TextView>(R.id.tv_week_pattern)
+        val colorLabel = findViewById<TextView>(R.id.tv_color_label)
+        val colorValue = findViewById<TextView>(R.id.tv_color_value)
         val noteTextView = findViewById<TextView>(R.id.tv_note)
         val noteLabel = findViewById<TextView>(R.id.tv_note_label)
         val editButton = findViewById<Button>(R.id.btn_edit)
@@ -58,8 +66,8 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
 
         // 设置课程信息
         courseNameTextView.text = course.name
-        teacherTextView.text = course.teacher
-        locationTextView.text = course.location
+        teacherTextView.text = "教师：${course.teacher?.ifBlank { "未填写" } ?: "未填写"}"
+        locationTextView.text = "地点：${course.location?.ifBlank { "未填写" } ?: "未填写"}"
         
         // 设置课程类型徽章
         val (typeName, typeColor) = getCourseTypeInfo(course.type)
@@ -71,7 +79,17 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
         courseTypeBadge.background = badgeDrawable
         
         // 根据系统主题设置文字颜色
-        updateTextColors(courseNameTextView, teacherTextView, locationTextView, timeTextView, weekPatternTextView, noteTextView, noteLabel)
+        updateTextColors(
+            courseNameTextView,
+            teacherTextView,
+            locationTextView,
+            timeTextView,
+            weekPatternTextView,
+            noteTextView,
+            noteLabel,
+            colorLabel,
+            colorValue
+        )
 
         // 设置上课时间
         val weekdays = arrayOf("", "周一", "周二", "周三", "周四", "周五", "周六", "周日")
@@ -79,6 +97,15 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
 
         // 设置周数模式
         weekPatternTextView.text = formatWeekPattern(course.weekPattern)
+
+        // 设置颜色显示
+        val (colorName, colorInt) = getCourseColorInfo(course.color)
+        colorValue.text = colorName
+        val colorDrawable = GradientDrawable().apply {
+            setColor(colorInt)
+            cornerRadius = dpToPx(10).toFloat()
+        }
+        colorValue.background = colorDrawable
 
         // 设置备注
         if (course.note.isNullOrEmpty()) {
@@ -93,14 +120,15 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
             // 添加按钮点击动画效果
             addButtonClickEffect(editButton)
             // 启动编辑功能
-            startEditCourse()
+            dismiss()
+            onEdit(course)
         }
 
         deleteButton.setOnClickListener {
             // 添加按钮点击动画效果
             addButtonClickEffect(deleteButton)
             // 删除课程
-            deleteCourse()
+            confirmDelete()
         }
 
         cancelButton.setOnClickListener {
@@ -172,7 +200,9 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
         timeTextView: TextView,
         weekPatternTextView: TextView,
         noteTextView: TextView?,
-        noteLabel: TextView?
+        noteLabel: TextView?,
+        colorLabel: TextView,
+        colorValue: TextView
     ) {
         val isDarkMode = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         
@@ -199,7 +229,11 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
         weekPatternTextView.setTextColor(secondaryTextColor)
         noteTextView?.setTextColor(secondaryTextColor)
         noteLabel?.setTextColor(primaryTextColor)
-    }    private fun getCourseTypeInfo(type: String): Pair<String, Int> {
+        colorLabel.setTextColor(primaryTextColor)
+        colorValue.setTextColor(whiteColor)
+    }
+
+    private fun getCourseTypeInfo(type: String): Pair<String, Int> {
         // 使用文档中定义的课程类型色彩映射
         return when (type) {
             "pe" -> Pair("体育", Color.parseColor("#4cc9f0"))       // 天蓝：活力/放松
@@ -226,19 +260,30 @@ class CourseDetailDialog(context: Context, private val course: Course) : Dialog(
         return (dp * context.resources.displayMetrics.density).toInt()
     }
     
-    private fun startEditCourse() {
-        // 关闭当前对话框
-        dismiss()
-        
-        // TODO: 通知 MainActivity 启动编辑
-        // 在实际应用中，您可能需要通过接口回调或其他方式通知 MainActivity
+    private fun getCourseColorInfo(color: Int?): Pair<String, Int> {
+        return if (color == null) {
+            Pair("按类型自动", context.getColor(R.color.course_major_required))
+        } else {
+            val mapping = mapOf(
+                context.getColor(R.color.course_major_required) to "蓝色",
+                context.getColor(R.color.course_major_elective) to "紫色",
+                context.getColor(R.color.course_public_required) to "粉色",
+                context.getColor(R.color.course_experiment) to "青绿",
+                context.getColor(R.color.course_pe) to "天蓝"
+            )
+            Pair(mapping[color] ?: "自定义", color)
+        }
     }
     
-    private fun deleteCourse() {
-        // 关闭当前对话框
-        dismiss()
-        
-        // TODO: 通知 MainActivity 删除课程
-        // 在实际应用中，您可能需要通过接口回调或其他方式通知 MainActivity
+    private fun confirmDelete() {
+        AlertDialog.Builder(context)
+            .setTitle("删除课程")
+            .setMessage("确定要删除《${course.name}》吗？")
+            .setPositiveButton("删除") { _, _ ->
+                dismiss()
+                onDelete(course)
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 }
