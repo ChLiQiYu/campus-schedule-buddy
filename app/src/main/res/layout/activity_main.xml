@@ -82,15 +82,17 @@
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/btn_today"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+        <ImageButton
+            android:id="@+id/btn_settings"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginEnd="8dp"
-            android:text="今日"
-            android:textColor="@android:color/white" />
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="设置"
+            android:padding="8dp"
+            android:src="@drawable/ic_settings"
+            app:tint="@android:color/white" />
 
     </com.google.android.material.appbar.MaterialToolbar>
 
