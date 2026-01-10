@@ -37,6 +37,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var fabAddCourse: FloatingActionButton
+    private lateinit var weekHeader: LinearLayout
+    private lateinit var timeHeader: TextView
 
     private var currentWeek = 1
     private val totalWeeks = 20
@@ -81,6 +83,9 @@ class MainActivity : AppCompatActivity() {
         scheduleContainer = findViewById(R.id.schedule_container)
         scrollView = findViewById(R.id.scrollView)
         fabAddCourse = findViewById(R.id.fab_add_course)
+        weekHeader = findViewById(R.id.week_header)
+        timeHeader = findViewById(R.id.tv_time_header)
+        updateWeekHeaderLayout()
     }
 
     private fun setupListeners() {
@@ -173,47 +178,81 @@ class MainActivity : AppCompatActivity() {
      */
     private fun addGridBackground(container: FrameLayout) {
         val isDarkMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val rowHeight = getPeriodRowHeight()
-        val timeColumnWidth = dpToPx(50) // 时间列宽度
-
-        // 为每个节次创建时间标签
-        for (period in 1..8) {
-            val timeLabel = TextView(this).apply {
-                text = "第${period}节"
-                textSize = 12f
-                gravity = android.view.Gravity.CENTER
-                setTextColor(if (isDarkMode) 
-                    ContextCompat.getColor(context, R.color.dark_text_secondary)
-                else 
-                    ContextCompat.getColor(context, R.color.light_text_secondary))
+        container.post {
+            val rowHeight = getPeriodRowHeight()
+            val metrics = calculateGridMetrics(container.width)
+            val timeColumnWidth = metrics.timeColumnWidth
+            val lineColor = if (isDarkMode) {
+                ContextCompat.getColor(this, R.color.grid_line_dark)
+            } else {
+                ContextCompat.getColor(this, R.color.grid_line)
             }
-            
-            val params = FrameLayout.LayoutParams(timeColumnWidth, rowHeight)
-            params.topMargin = rowHeight * (period - 1)
-            params.leftMargin = 0
-            timeLabel.layoutParams = params
-            
-            container.addView(timeLabel)
+            val timeTextColor = if (isDarkMode) {
+                ContextCompat.getColor(this, R.color.dark_text_secondary)
+            } else {
+                ContextCompat.getColor(this, R.color.light_text_secondary)
+            }
+
+            // 为每个节次创建时间标签
+            for (period in 1..8) {
+                val timeLabel = TextView(this).apply {
+                    text = "第${period}节"
+                    textSize = 12f
+                    gravity = android.view.Gravity.CENTER
+                    setTextColor(timeTextColor)
+                }
+
+                val params = FrameLayout.LayoutParams(timeColumnWidth, rowHeight)
+                params.topMargin = rowHeight * (period - 1)
+                params.leftMargin = metrics.innerPadding
+                timeLabel.layoutParams = params
+
+                container.addView(timeLabel)
+            }
+
+            // 添加水平分隔线
+            for (i in 1..8) {
+                val divider = View(this).apply {
+                    setBackgroundColor(lineColor)
+                }
+                val params = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(1)
+                )
+                params.topMargin = rowHeight * i
+                divider.layoutParams = params
+                container.addView(divider)
+            }
+
+            // 添加垂直分隔线
+            val totalHeight = rowHeight * 8
+            for (i in 0..7) {
+                val divider = View(this).apply {
+                    setBackgroundColor(lineColor)
+                }
+                val params = FrameLayout.LayoutParams(
+                    dpToPx(1),
+                    totalHeight
+                )
+                params.leftMargin = metrics.innerPadding + timeColumnWidth + metrics.dayColumnWidth * i
+                divider.layoutParams = params
+                container.addView(divider)
+            }
         }
+    }
 
-        // 添加水平分隔线
-        val lineColor = if (isDarkMode) 
-            ContextCompat.getColor(this, R.color.dark_text_secondary) 
-        else 
-            ContextCompat.getColor(this, R.color.light_text_secondary)
-        
-        for (i in 1..8) {
-            val divider = View(this).apply {
-                setBackgroundColor(lineColor)
-                alpha = 0.3f
-            }
-            val params = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                dpToPx(1)
+    private fun updateWeekHeaderLayout() {
+        weekHeader.post {
+            val metrics = calculateGridMetrics(weekHeader.width)
+            val params = timeHeader.layoutParams as LinearLayout.LayoutParams
+            params.width = metrics.timeColumnWidth + metrics.innerPadding
+            timeHeader.layoutParams = params
+            weekHeader.setPadding(
+                weekHeader.paddingLeft,
+                weekHeader.paddingTop,
+                metrics.innerPadding,
+                weekHeader.paddingBottom
             )
-            params.topMargin = rowHeight * i
-            divider.layoutParams = params
-            container.addView(divider)
         }
     }
 
@@ -222,26 +261,26 @@ class MainActivity : AppCompatActivity() {
      */
     private fun addCourseCard(container: FrameLayout, course: Course) {
         val rowHeight = getPeriodRowHeight()
-        val timeColumnWidth = dpToPx(50)
         
         // 等待容器测量完成后再计算位置
         container.post {
             val containerWidth = container.width
             if (containerWidth <= 0) return@post
-            
-            // 计算每个星期列的宽度
-            val dayColumnWidth = (containerWidth - timeColumnWidth) / 7
+
+            val metrics = calculateGridMetrics(containerWidth)
             
             // 计算课程卡片的位置和尺寸
             val span = course.endPeriod - course.startPeriod + 1
-            val cardLeft = timeColumnWidth + (course.dayOfWeek - 1) * dayColumnWidth + dpToPx(2)
-            val cardTop = (course.startPeriod - 1) * rowHeight + dpToPx(2)
-            val cardWidth = dayColumnWidth - dpToPx(4)
-            val cardHeight = rowHeight * span - dpToPx(4)
+            val cardLeft = metrics.innerPadding + metrics.timeColumnWidth +
+                (course.dayOfWeek - 1) * metrics.dayColumnWidth + metrics.columnGap
+            val cardTop = (course.startPeriod - 1) * rowHeight + metrics.columnGap
+            val cardWidth = metrics.dayColumnWidth - metrics.columnGap * 2
+            val cardHeight = rowHeight * span - metrics.columnGap * 2
             
             val courseCard = CourseCardView(this).apply {
                 setCourse(course)
                 setIsSpanning(span)
+                tag = course
                 
                 layoutParams = FrameLayout.LayoutParams(cardWidth, cardHeight).apply {
                     leftMargin = cardLeft
@@ -270,24 +309,23 @@ class MainActivity : AppCompatActivity() {
         val currentPeriod = getCurrentPeriod(now)
         val currentDay = java.time.LocalDate.now().dayOfWeek.value
 
-        // 如果在课程时间范围内，则高亮显示
-        if (currentPeriod > 0 && currentDay in 1..7) {
-            // 遍历scheduleContainer中的所有子视图
-            for (i in 0 until scheduleContainer.childCount) {
-                val child = scheduleContainer.getChildAt(i)
-                // 新布局结构：课程表主容器是FrameLayout
-                if (child is FrameLayout) {
-                    // 遍历FrameLayout中的所有课程卡片
-                    for (j in 0 until child.childCount) {
-                        val cardView = child.getChildAt(j)
-                        if (cardView is CourseCardView) {
-                            val course = getCourseFromCard(cardView)
-                            if (course != null) {
-                                val isCurrent = course.dayOfWeek == currentDay &&
-                                        currentPeriod >= course.startPeriod &&
-                                        currentPeriod <= course.endPeriod
-                                cardView.setCurrentCourse(isCurrent)
-                            }
+        // 遍历scheduleContainer中的所有子视图
+        for (i in 0 until scheduleContainer.childCount) {
+            val child = scheduleContainer.getChildAt(i)
+            // 新布局结构：课程表主容器是FrameLayout
+            if (child is FrameLayout) {
+                // 遍历FrameLayout中的所有课程卡片
+                for (j in 0 until child.childCount) {
+                    val cardView = child.getChildAt(j)
+                    if (cardView is CourseCardView) {
+                        val course = getCourseFromCard(cardView)
+                        if (course != null) {
+                            val isCurrent = currentPeriod > 0 &&
+                                currentDay in 1..7 &&
+                                course.dayOfWeek == currentDay &&
+                                currentPeriod >= course.startPeriod &&
+                                currentPeriod <= course.endPeriod
+                            cardView.setCurrentCourse(isCurrent)
                         }
                     }
                 }
@@ -376,6 +414,10 @@ class MainActivity : AppCompatActivity() {
      * 通过反射获取CourseCardView中的课程对象
      */
     private fun getCourseFromCard(courseCardView: CourseCardView): Course? {
+        val taggedCourse = courseCardView.tag as? Course
+        if (taggedCourse != null) {
+            return taggedCourse
+        }
         return try {
             val field = CourseCardView::class.java.getDeclaredField("course")
             field.isAccessible = true
@@ -383,6 +425,24 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             null
         }
+    }
+
+    private data class GridMetrics(
+        val timeColumnWidth: Int,
+        val dayColumnWidth: Int,
+        val columnGap: Int,
+        val innerPadding: Int
+    )
+
+    private fun calculateGridMetrics(containerWidth: Int): GridMetrics {
+        val innerPadding = dpToPx(4)
+        val minTimeWidth = dpToPx(42)
+        val maxTimeWidth = dpToPx(56)
+        val availableWidth = (containerWidth - innerPadding * 2).coerceAtLeast(0)
+        val timeColumnWidth = (availableWidth * 0.13f).toInt().coerceIn(minTimeWidth, maxTimeWidth)
+        val dayColumnWidth = ((availableWidth - timeColumnWidth) / 7f).toInt().coerceAtLeast(dpToPx(36))
+        val columnGap = dpToPx(2)
+        return GridMetrics(timeColumnWidth, dayColumnWidth, columnGap, innerPadding)
     }
 
     private fun setupRepository() {
