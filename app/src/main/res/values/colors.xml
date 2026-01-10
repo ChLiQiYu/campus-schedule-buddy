@@ -29,4 +29,10 @@
     <!-- 标题栏颜色 -->
     <color name="dark_title">#FF1E1E1E</color>
     <color name="light_title">#FFF0F0F0</color>
+
+    <!-- 卡片与强调色 -->
+    <color name="card_border">#26FFFFFF</color>
+    <color name="card_border_current">#FFFFFFFF</color>
+    <color name="grid_line">#1A000000</color>
+    <color name="grid_line_dark">#26FFFFFF</color>
 </resources>

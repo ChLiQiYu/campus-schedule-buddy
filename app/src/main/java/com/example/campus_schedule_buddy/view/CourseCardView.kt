@@ -6,16 +6,13 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
-import android.os.Build
-import android.text.Layout
-import android.text.StaticLayout
-import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import com.example.campus_schedule_buddy.R
 import com.example.campus_schedule_buddy.model.Course
 
@@ -31,13 +28,12 @@ class CourseCardView @JvmOverloads constructor(
     private val teacherTextView: ChineseOptimizedTextView
     private val locationTextView: ChineseOptimizedTextView
     private val periodTextView: ChineseOptimizedTextView
-    private var isPressed = false
-    private var originalElevation = 0f
-    private var cardWidth = 0
     private var spanCount = 1
+    private var backgroundDrawable: GradientDrawable? = null
+    private var isCurrentCourse = false
     private val spanIndicatorPaint = Paint().apply {
         isAntiAlias = true
-        textSize = 24f
+        textSize = dpToPx(10).toFloat()
         color = Color.WHITE
         textAlign = Paint.Align.RIGHT
     }
@@ -46,17 +42,12 @@ class CourseCardView @JvmOverloads constructor(
         orientation = VERTICAL
         gravity = Gravity.START or Gravity.TOP
         // 优化内边距，确保在小屏幕上也能显示足够的文本
-        val horizontalPadding = dpToPx(4) // 使用文档中定义的12dp内边距
-        val verticalPadding = dpToPx(8) // 减小垂直内边距，为文本留出更多空间
+        val horizontalPadding = dpToPx(6)
+        val verticalPadding = dpToPx(8)
         setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
 
         // 设置初始背景
         setBackgroundResource(android.R.color.transparent)
-
-        // 计算卡片宽度（减去左右内边距）
-        post {
-            cardWidth = width - horizontalPadding * 2
-        }
 
         // 优化课程名称显示 - 每行3个中文，最多3行
         courseNameTextView = ChineseOptimizedTextView(context).apply {
@@ -98,28 +89,25 @@ class CourseCardView @JvmOverloads constructor(
             val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             textView.layoutParams = params
         }
-        // 保存原始elevation值
-        originalElevation = elevation
-
         // 添加触摸监听器实现按压效果
         setOnTouchListener { _, event ->
             when (event.action) {
                 android.view.MotionEvent.ACTION_DOWN -> {
-                    isPressed = true
-                    // 减小elevation创建按下效果
-                    elevation = originalElevation * 0.3f
-                    // 缩小视图创建按下效果
-                    scaleX = 0.95f
-                    scaleY = 0.95f
+                    animate()
+                        .scaleX(0.97f)
+                        .scaleY(0.97f)
+                        .setDuration(90)
+                        .start()
+                    ViewCompat.setTranslationZ(this, dpToPx(6).toFloat())
                 }
                 android.view.MotionEvent.ACTION_UP,
                 android.view.MotionEvent.ACTION_CANCEL -> {
-                    isPressed = false
-                    // 恢复elevation
-                    elevation = originalElevation
-                    // 恢复视图大小
-                    scaleX = 1.0f
-                    scaleY = 1.0f
+                    animate()
+                        .scaleX(if (isCurrentCourse) 1.02f else 1.0f)
+                        .scaleY(if (isCurrentCourse) 1.02f else 1.0f)
+                        .setDuration(120)
+                        .start()
+                    ViewCompat.setTranslationZ(this, 0f)
                 }
             }
             false // 返回false以允许点击事件继续传播
@@ -127,7 +115,9 @@ class CourseCardView @JvmOverloads constructor(
 
         // 设置初始状态用于入场动画
         alpha = 0f
-        translationY = dpToPx(20).toFloat()
+        translationY = dpToPx(16).toFloat()
+        scaleX = 0.98f
+        scaleY = 0.98f
     }
 
     fun setCourse(course: Course) {
@@ -202,13 +192,21 @@ class CourseCardView @JvmOverloads constructor(
         val color = course.color ?: fallbackColor
 
         // 创建带圆角和阴影的背景
+        val strokeWidth = if (isCurrentCourse) dpToPx(2) else dpToPx(1)
+        val strokeColor = if (isCurrentCourse) {
+            ContextCompat.getColor(context, R.color.card_border_current)
+        } else {
+            ContextCompat.getColor(context, R.color.card_border)
+        }
         val drawable = GradientDrawable().apply {
             setColor(color)
-            cornerRadius = dpToPx(12).toFloat()
+            cornerRadius = dpToPx(14).toFloat()
+            setStroke(strokeWidth, strokeColor)
         }
 
+        backgroundDrawable = drawable
         background = drawable
-        elevation = dpToPx(2).toFloat()
+        elevation = dpToPx(3).toFloat()
     }
 
     private fun dpToPx(dp: Int): Int {
@@ -220,24 +218,14 @@ class CourseCardView @JvmOverloads constructor(
      */
     fun startEntranceAnimation(delay: Long = 0) {
         postDelayed({
+            animate().cancel()
             animate()
                 .alpha(1f)
                 .translationY(0f)
-                .setDuration(220)
-                .setInterpolator(android.view.animation.OvershootInterpolator())
-                .start()
-                    
-            animate()
-                .scaleX(1.05f)
-                .scaleY(1.05f)
-                .setDuration(150)
-                .withEndAction {
-                    animate()
-                        .scaleX(1.0f)
-                        .scaleY(1.0f)
-                        .setDuration(150)
-                        .start()
-                }
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(260)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
         }, delay)
     }
@@ -253,7 +241,6 @@ class CourseCardView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        cardWidth = w - paddingLeft - paddingRight
         // 重新测量文本
         requestLayout()
     }
@@ -263,7 +250,7 @@ class CourseCardView @JvmOverloads constructor(
         
         // 如果是跨节课程，绘制跨节数指示器
         if (spanCount > 1) {
-            val text = "↾$spanCount"
+            val text = "x$spanCount"
             val xPos = width - paddingRight - dpToPx(4)
             val yPos = height - paddingBottom - dpToPx(4)
             canvas.drawText(text, xPos.toFloat(), yPos.toFloat(), spanIndicatorPaint)
@@ -275,20 +262,23 @@ class CourseCardView @JvmOverloads constructor(
      * @param isCurrent 是否为当前课程
      */
     fun setCurrentCourse(isCurrent: Boolean) {
+        isCurrentCourse = isCurrent
         if (isCurrent) {
-            // 增加阴影和边框来突出显示当前课程，使用文档中推荐的8dp
-            elevation = dpToPx(8).toFloat()
-            
-            // 添加边框效果来进一步突出当前课程
-            val drawable = background as? GradientDrawable
-            drawable?.setStroke(dpToPx(2), Color.WHITE)
+            elevation = dpToPx(10).toFloat()
+            backgroundDrawable?.setStroke(dpToPx(2), ContextCompat.getColor(context, R.color.card_border_current))
+            animate()
+                .scaleX(1.02f)
+                .scaleY(1.02f)
+                .setDuration(140)
+                .start()
         } else {
-            // 恢复正常阴影，使用文档中推荐的2dp
-            elevation = dpToPx(2).toFloat()
-            
-            // 移除边框
-            val drawable = background as? GradientDrawable
-            drawable?.setStroke(0, Color.TRANSPARENT)
+            elevation = dpToPx(3).toFloat()
+            backgroundDrawable?.setStroke(dpToPx(1), ContextCompat.getColor(context, R.color.card_border))
+            animate()
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(140)
+                .start()
         }
     }
 }
@@ -312,6 +302,7 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
 
     // 重写以实现裁切而非省略号
     private var contentRect = Rect()
+    private var baseTextSizePx = 0f
 
     init {
         // 禁用系统省略号
@@ -319,8 +310,6 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
         setSingleLine(false)
         ellipsize = null
 
-        // 启用硬件加速以提高绘制性能
-        setLayerType(LAYER_TYPE_HARDWARE, null)
     }
 
     /**
@@ -339,6 +328,7 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
         setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, textSizeSp)
         setTypeface(null, if (bold) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
         gravity = Gravity.TOP or Gravity.START
+        baseTextSizePx = textSize
     
         // 要用系统省略号，我们将手动处理裁切
         setSingleLine(false)
@@ -411,6 +401,8 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
                 // 应用新的字体大小（不低于10sp）
                 val newTextSize = maxOf(textSize * scaleRatio, 10f)
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, newTextSize)
+            } else if (baseTextSizePx > 0f && textSize != baseTextSizePx) {
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, baseTextSizePx)
             }
         }
 

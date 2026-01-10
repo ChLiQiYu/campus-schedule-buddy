@@ -8,8 +8,6 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
 import android.view.Window
-import android.view.animation.Animation
-import android.view.animation.ScaleAnimation
 import android.widget.Button
 import android.widget.TextView
 import com.example.campus_schedule_buddy.R
@@ -21,6 +19,7 @@ class CourseDetailDialog(
     private val onEdit: (Course) -> Unit,
     private val onDelete: (Course) -> Unit
 ) : Dialog(context) {
+    private var isDismissing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -145,33 +144,19 @@ class CourseDetailDialog(
      * 为按钮添加点击动画效果
      */
     private fun addButtonClickEffect(button: Button) {
-        val scaleAnimation = ScaleAnimation(
-            1f, 0.95f, 1f, 0.95f,
-            Animation.RELATIVE_TO_SELF, 0.5f,
-            Animation.RELATIVE_TO_SELF, 0.5f
-        )
-        scaleAnimation.duration = 100
-        scaleAnimation.fillAfter = false
-        
-        val restoreAnimation = ScaleAnimation(
-            0.95f, 1f, 0.95f, 1f,
-            Animation.RELATIVE_TO_SELF, 0.5f,
-            Animation.RELATIVE_TO_SELF, 0.5f
-        )
-        restoreAnimation.duration = 100
-        restoreAnimation.fillAfter = false
-        
-        scaleAnimation.setAnimationListener(object : Animation.AnimationListener {
-            override fun onAnimationStart(animation: Animation?) {}
-            
-            override fun onAnimationRepeat(animation: Animation?) {}
-            
-            override fun onAnimationEnd(animation: Animation?) {
-                button.startAnimation(restoreAnimation)
+        button.animate().cancel()
+        button.animate()
+            .scaleX(0.96f)
+            .scaleY(0.96f)
+            .setDuration(90)
+            .withEndAction {
+                button.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(110)
+                    .start()
             }
-        })
-        
-        button.startAnimation(scaleAnimation)
+            .start()
     }
     
     /**
@@ -180,13 +165,16 @@ class CourseDetailDialog(
     private fun addDialogShowAnimation() {
         val rootView = findViewById<View>(android.R.id.content)
         if (rootView != null) {
-            val scaleAnimation = ScaleAnimation(
-                0.8f, 1f, 0.8f, 1f,
-                Animation.RELATIVE_TO_SELF, 0.5f,
-                Animation.RELATIVE_TO_SELF, 0.5f
-            )
-            scaleAnimation.duration = 300
-            rootView.startAnimation(scaleAnimation)
+            rootView.alpha = 0f
+            rootView.scaleX = 0.92f
+            rootView.scaleY = 0.92f
+            rootView.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(220)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
         }
     }
     
@@ -285,5 +273,27 @@ class CourseDetailDialog(
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    override fun dismiss() {
+        if (isDismissing) {
+            return
+        }
+        val rootView = findViewById<View>(android.R.id.content)
+        if (rootView == null) {
+            super.dismiss()
+            return
+        }
+        isDismissing = true
+        rootView.animate()
+            .alpha(0f)
+            .scaleX(0.96f)
+            .scaleY(0.96f)
+            .setDuration(160)
+            .withEndAction {
+                isDismissing = false
+                super.dismiss()
+            }
+            .start()
     }
 }
