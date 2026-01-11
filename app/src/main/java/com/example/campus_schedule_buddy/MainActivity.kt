@@ -39,9 +39,16 @@ import androidx.activity.enableEdgeToEdge
 import com.example.campus_schedule_buddy.reminder.ReminderScheduler
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.app.AlertDialog
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import com.example.campus_schedule_buddy.util.CourseExcelImporter
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import android.database.Cursor
+import android.provider.OpenableColumns
 
 class MainActivity : AppCompatActivity() {
 
@@ -49,16 +56,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnPreviousWeek: ImageButton
     private lateinit var btnNextWeek: ImageButton
     private lateinit var btnSettings: ImageButton
+    private lateinit var btnImport: ImageButton
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var fabAddCourse: FloatingActionButton
     private lateinit var weekHeader: LinearLayout
     private lateinit var timeHeader: TextView
-    private lateinit var bottomNavigation: com.google.android.material.bottomnavigation.BottomNavigationView
+    private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var titleDate: TextView
     private lateinit var titleWeekDay: TextView
     private lateinit var weekDateLabels: List<TextView>
     private lateinit var gestureDetector: GestureDetector
+    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            handleImportUri(uri)
+        }
+    }
 
     private var currentWeek = 1
     private val totalWeeks = 20
@@ -109,6 +122,7 @@ class MainActivity : AppCompatActivity() {
         btnPreviousWeek = findViewById(R.id.btn_previous_week)
         btnNextWeek = findViewById(R.id.btn_next_week)
         btnSettings = findViewById(R.id.btn_settings)
+        btnImport = findViewById(R.id.btn_import)
         scheduleContainer = findViewById(R.id.schedule_container)
         scrollView = findViewById(R.id.scrollView)
         fabAddCourse = findViewById(R.id.fab_add_course)
@@ -149,6 +163,10 @@ class MainActivity : AppCompatActivity() {
 
         btnSettings.setOnClickListener {
             startActivity(android.content.Intent(this, SettingsActivity::class.java))
+        }
+
+        btnImport.setOnClickListener {
+            launchImportPicker()
         }
 
         fabAddCourse.setOnClickListener {
@@ -488,6 +506,67 @@ class MainActivity : AppCompatActivity() {
 
     private fun getWeekStartDate(week: Int): LocalDate {
         return semesterStartDate.plusDays(((week - 1) * 7).toLong())
+    }
+
+    private fun launchImportPicker() {
+        importLauncher.launch(arrayOf("application/vnd.ms-excel", "application/octet-stream"))
+    }
+
+    private fun handleImportUri(uri: Uri) {
+        val fileName = resolveFileName(uri)
+        if (fileName != null && !fileName.lowercase().endsWith(".xls")) {
+            Toast.makeText(this, "请选择.xls格式的课表文件", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val progressDialog = showImportProgress()
+        lifecycleScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    CourseExcelImporter.importFromUri(contentResolver, uri)
+                }
+                if (result.courses.isEmpty()) {
+                    throw IllegalStateException("未解析到课程数据，请检查课表格式")
+                }
+                withContext(Dispatchers.IO) {
+                    repository.replaceAll(result.courses)
+                }
+                progressDialog.dismiss()
+                val message = "导入完成：成功${result.courses.size}条，跳过${result.skippedCount}条"
+                Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Toast.makeText(
+                    this@MainActivity,
+                    "导入失败：${e.message ?: "未知错误"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun resolveFileName(uri: Uri): String? {
+        if (uri.scheme != "content") {
+            return uri.lastPathSegment
+        }
+        val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex >= 0) {
+                    return it.getString(nameIndex)
+                }
+            }
+        }
+        return null
+    }
+
+    private fun showImportProgress(): AlertDialog {
+        return AlertDialog.Builder(this)
+            .setTitle("导入课表")
+            .setMessage("正在导入，请稍候...")
+            .setView(android.widget.ProgressBar(this))
+            .setCancelable(false)
+            .show()
     }
 
     private fun getCurrentPeriod(time: java.time.LocalTime): Int {
