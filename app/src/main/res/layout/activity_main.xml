@@ -331,6 +331,20 @@
         app:menu="@menu/bottom_nav_menu" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_quick_note"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/fab_add_course"
+        android:layout_alignEnd="@id/fab_add_course"
+        android:layout_marginBottom="12dp"
+        android:contentDescription="快速笔记"
+        android:visibility="gone"
+        app:backgroundTint="?attr/colorPrimary"
+        app:srcCompat="@drawable/ic_note"
+        app:tint="?attr/colorOnPrimary"
+        app:fabSize="mini" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_course"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

@@ -28,6 +28,7 @@ class CourseCardView @JvmOverloads constructor(
     private val teacherTextView: ChineseOptimizedTextView
     private val locationTextView: ChineseOptimizedTextView
     private val periodTextView: ChineseOptimizedTextView
+    private val workspaceTextView: AppCompatTextView
     private var spanCount = 1
     private var backgroundDrawable: GradientDrawable? = null
     private var isCurrentCourse = false
@@ -71,18 +72,29 @@ class CourseCardView @JvmOverloads constructor(
             gravity = Gravity.BOTTOM or Gravity.END
         }
 
+        workspaceTextView = AppCompatTextView(context).apply {
+            textSize = 8f
+            setSingleLine(true)
+            ellipsize = TextUtils.TruncateAt.END
+            text = "资料 0 · 笔记 0"
+            gravity = Gravity.START
+            setPadding(0, dpToPx(2), 0, 0)
+        }
+
         // 添加子视图
         addView(courseNameTextView)
         addView(teacherTextView)
         addView(locationTextView)
         addView(periodTextView)
+        addView(workspaceTextView)
 
         // 为所有TextView设置自适应高度的布局参数，使其高度能根据实际内容自动调整
         val textViewList = listOf(
             courseNameTextView,
             teacherTextView,
             locationTextView,
-            periodTextView
+            periodTextView,
+            workspaceTextView
         )
         
         textViewList.forEach { textView ->
@@ -148,6 +160,9 @@ class CourseCardView @JvmOverloads constructor(
         // 根据系统主题更新文字颜色
         updateTextColors()
 
+        // 重置工作区计数
+        setWorkspaceCounts(0, 0)
+
         // 重新测量文本，确保正确显示
         post { requestLayout() }
     }
@@ -176,6 +191,7 @@ class CourseCardView @JvmOverloads constructor(
         teacherTextView.setTextColor(secondaryTextColor)
         locationTextView.setTextColor(secondaryTextColor)
         periodTextView.setTextColor(secondaryTextColor)
+        workspaceTextView.setTextColor(secondaryTextColor)
     }
     /**
      * 设置背景颜色
@@ -280,6 +296,16 @@ class CourseCardView @JvmOverloads constructor(
                 .setDuration(140)
                 .start()
         }
+    }
+
+    fun setWorkspaceCounts(attachmentCount: Int, noteCount: Int) {
+        workspaceTextView.text = "资料 $attachmentCount · 笔记 $noteCount"
+    }
+
+    fun setOnWorkspaceClickListener(listener: View.OnClickListener?) {
+        workspaceTextView.setOnClickListener(listener)
+        workspaceTextView.isClickable = listener != null
+        workspaceTextView.isFocusable = listener != null
     }
 }
 

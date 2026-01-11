@@ -14,9 +14,11 @@ import com.example.campus_schedule_buddy.model.Course
         AppSettingsEntity::class,
         PeriodTimeEntity::class,
         ReminderSettingsEntity::class,
-        CourseTypeReminderEntity::class
+        CourseTypeReminderEntity::class,
+        CourseAttachmentEntity::class,
+        CourseNoteEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -24,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun courseDao(): CourseDao
     abstract fun settingsDao(): SettingsDao
     abstract fun semesterDao(): SemesterDao
+    abstract fun workspaceDao(): CourseWorkspaceDao
 
     companion object {
         @Volatile
@@ -35,7 +38,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "campus_schedule.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .build()
+                    .also { instance = it }
             }
         }
     }
@@ -178,5 +183,48 @@ private val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
         db.execSQL("ALTER TABLE course_type_reminders_new RENAME TO course_type_reminders")
 
         db.execSQL("DROP TABLE semester_settings")
+    }
+}
+
+private val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS course_attachments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                semesterId INTEGER NOT NULL,
+                courseId INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                uri TEXT,
+                url TEXT,
+                dueAt INTEGER,
+                createdAt INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_course_attachments_semesterId_courseId
+            ON course_attachments (semesterId, courseId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS course_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                semesterId INTEGER NOT NULL,
+                courseId INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                createdAt INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_course_notes_semesterId_courseId
+            ON course_notes (semesterId, courseId)
+            """.trimIndent()
+        )
     }
 }
