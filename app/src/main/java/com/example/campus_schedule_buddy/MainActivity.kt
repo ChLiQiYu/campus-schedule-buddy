@@ -1,9 +1,13 @@
 package com.example.campus_schedule_buddy
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.text.InputType
+import android.view.Gravity
 import android.view.View
 import android.widget.ImageButton
 import android.widget.FrameLayout
@@ -25,11 +29,15 @@ import androidx.lifecycle.lifecycleScope
 import com.example.campus_schedule_buddy.model.Course
 import com.example.campus_schedule_buddy.data.AppDatabase
 import com.example.campus_schedule_buddy.data.CourseRepository
+import com.example.campus_schedule_buddy.data.CourseAttachmentEntity
+import com.example.campus_schedule_buddy.data.CourseNoteEntity
 import com.example.campus_schedule_buddy.data.CourseTypeReminderEntity
+import com.example.campus_schedule_buddy.data.CourseWorkspaceCount
 import com.example.campus_schedule_buddy.data.PeriodTimeEntity
 import com.example.campus_schedule_buddy.data.ReminderSettingsEntity
 import com.example.campus_schedule_buddy.data.SettingsRepository
 import com.example.campus_schedule_buddy.data.SemesterEntity
+import com.example.campus_schedule_buddy.data.WorkspaceRepository
 import com.example.campus_schedule_buddy.view.CourseCardView
 import com.example.campus_schedule_buddy.view.CourseDetailDialog
 import com.example.campus_schedule_buddy.view.AddEditCourseDialog
@@ -42,6 +50,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.activity.enableEdgeToEdge
@@ -54,6 +63,8 @@ import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import com.example.campus_schedule_buddy.util.CourseExcelImporter
@@ -70,6 +81,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var fabAddCourse: FloatingActionButton
+    private lateinit var fabQuickNote: FloatingActionButton
     private lateinit var weekHeader: LinearLayout
     private lateinit var timeHeader: TextView
     private lateinit var bottomNavigation: BottomNavigationView
@@ -91,6 +103,37 @@ class MainActivity : AppCompatActivity() {
             handleExportUri(uri)
         }
     }
+    private val pdfPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val course = pendingAttachmentCourse
+        if (uri == null || course == null) {
+            pendingAttachmentCourse = null
+            return@registerForActivityResult
+        }
+        try {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: SecurityException) {
+            // Ignore if we cannot persist the permission.
+        }
+        val title = resolveFileName(uri) ?: "PDF讲义"
+        val attachment = CourseAttachmentEntity(
+            semesterId = course.semesterId,
+            courseId = course.id,
+            type = CourseAttachmentEntity.TYPE_PDF,
+            title = title,
+            uri = uri.toString(),
+            createdAt = System.currentTimeMillis()
+        )
+        if (::workspaceRepository.isInitialized) {
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    workspaceRepository.addAttachment(attachment)
+                }
+                workspaceRefresh?.invoke()
+                Toast.makeText(this@MainActivity, "已添加PDF讲义", Toast.LENGTH_SHORT).show()
+            }
+        }
+        pendingAttachmentCourse = null
+    }
 
     private var currentWeek = 1
     private val totalWeeks = 20
@@ -99,6 +142,7 @@ class MainActivity : AppCompatActivity() {
     private val courseList = mutableListOf<Course>()
     private lateinit var repository: CourseRepository
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var workspaceRepository: WorkspaceRepository
     private val reminderScheduler by lazy { ReminderScheduler(this) }
     private var periodTimes: List<PeriodTimeEntity> = emptyList()
     private var semesterStartDate: LocalDate = LocalDate.now()
@@ -108,6 +152,10 @@ class MainActivity : AppCompatActivity() {
     private var semesters: List<SemesterEntity> = emptyList()
     private var selectedDayOfWeek: Int = LocalDate.now().dayOfWeek.value
     private var viewMode: ViewMode = ViewMode.WEEK
+    private var workspaceCounts: Map<Long, CourseWorkspaceCount> = emptyMap()
+    private var currentCourseForQuickNote: Course? = null
+    private var pendingAttachmentCourse: Course? = null
+    private var workspaceRefresh: (() -> Unit)? = null
 
     private enum class ViewMode {
         DAY,
@@ -154,6 +202,7 @@ class MainActivity : AppCompatActivity() {
         scheduleContainer = findViewById(R.id.schedule_container)
         scrollView = findViewById(R.id.scrollView)
         fabAddCourse = findViewById(R.id.fab_add_course)
+        fabQuickNote = findViewById(R.id.fab_quick_note)
         weekHeader = findViewById(R.id.week_header)
         timeHeader = findViewById(R.id.tv_time_header)
         bottomNavigation = findViewById(R.id.bottom_navigation)
@@ -226,6 +275,15 @@ class MainActivity : AppCompatActivity() {
 
         fabAddCourse.setOnClickListener {
             showAddCourseDialog()
+        }
+
+        fabQuickNote.setOnClickListener {
+            val course = currentCourseForQuickNote
+            if (course == null) {
+                Toast.makeText(this, "当前没有进行中的课程", Toast.LENGTH_SHORT).show()
+            } else {
+                showQuickNoteDialog(course)
+            }
         }
 
         scrollView.setOnTouchListener { _, event ->
@@ -732,6 +790,14 @@ class MainActivity : AppCompatActivity() {
                 setCourse(course)
                 setIsSpanning(span)
                 tag = course
+                val counts = workspaceCounts[course.id]
+                setWorkspaceCounts(
+                    counts?.attachmentCount ?: 0,
+                    counts?.noteCount ?: 0
+                )
+                setOnWorkspaceClickListener {
+                    showCourseWorkspaceDialog(course)
+                }
                 
                 layoutParams = FrameLayout.LayoutParams(cardWidth, cardHeight).apply {
                     leftMargin = cardLeft
@@ -759,6 +825,8 @@ class MainActivity : AppCompatActivity() {
         val now = java.time.LocalTime.now()
         val currentPeriod = getCurrentPeriod(now)
         val currentDay = java.time.LocalDate.now().dayOfWeek.value
+        val activeCourse = resolveCurrentCourse(currentPeriod, currentDay)
+        updateQuickNoteFab(activeCourse)
 
         // 遍历scheduleContainer中的所有子视图
         for (i in 0 until scheduleContainer.childCount) {
@@ -782,6 +850,24 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun resolveCurrentCourse(currentPeriod: Int, currentDay: Int): Course? {
+        if (currentPeriod <= 0) return null
+        val currentWeekIndex = getCurrentWeek()
+        return courseList.firstOrNull { course ->
+            course.dayOfWeek == currentDay &&
+                currentPeriod in course.startPeriod..course.endPeriod &&
+                course.weekPattern.contains(currentWeekIndex)
+        }
+    }
+
+    private fun updateQuickNoteFab(course: Course?) {
+        currentCourseForQuickNote = course
+        if (!::fabQuickNote.isInitialized) return
+        val shouldShow = course != null
+        fabQuickNote.visibility = if (shouldShow) View.VISIBLE else View.GONE
+        fabQuickNote.isEnabled = shouldShow
     }
 
     private fun scrollToCurrentTime() {
@@ -1188,6 +1274,446 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun showCourseWorkspaceDialog(course: Course) {
+        if (!::workspaceRepository.isInitialized) {
+            Toast.makeText(this, "工作区尚未准备好", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val dialog = BottomSheetDialog(this)
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_course_workspace, null)
+        val titleView = sheetView.findViewById<TextView>(R.id.tv_workspace_title)
+        val subtitleView = sheetView.findViewById<TextView>(R.id.tv_workspace_subtitle)
+        val attachmentsContainer = sheetView.findViewById<LinearLayout>(R.id.container_attachments)
+        val notesContainer = sheetView.findViewById<LinearLayout>(R.id.container_notes)
+        val addPdfButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_pdf)
+        val addLinkButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_link)
+        val addTaskButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_task)
+        val addNoteButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_note)
+
+        titleView.text = "${course.name} 工作区"
+        subtitleView.text = "${formatWeekday(course.dayOfWeek)} 第${course.startPeriod}-${course.endPeriod}节"
+
+        fun refreshWorkspace() {
+            lifecycleScope.launch {
+                val attachments = withContext(Dispatchers.IO) {
+                    workspaceRepository.getAttachments(course.semesterId, course.id)
+                }
+                val notes = withContext(Dispatchers.IO) {
+                    workspaceRepository.getNotes(course.semesterId, course.id)
+                }
+                renderWorkspaceAttachments(attachmentsContainer, attachments)
+                renderWorkspaceNotes(notesContainer, notes)
+            }
+        }
+
+        workspaceRefresh = {
+            if (dialog.isShowing) {
+                refreshWorkspace()
+            }
+        }
+        dialog.setOnDismissListener {
+            workspaceRefresh = null
+        }
+
+        refreshWorkspace()
+
+        addPdfButton.setOnClickListener {
+            pendingAttachmentCourse = course
+            pdfPicker.launch(arrayOf("application/pdf"))
+        }
+
+        addLinkButton.setOnClickListener {
+            showAddLinkDialog(course) { refreshWorkspace() }
+        }
+
+        addTaskButton.setOnClickListener {
+            showAddTaskDialog(course) { refreshWorkspace() }
+        }
+
+        addNoteButton.setOnClickListener {
+            showAddNoteDialog(course) { refreshWorkspace() }
+        }
+
+        dialog.setContentView(sheetView)
+        dialog.show()
+    }
+
+    private fun renderWorkspaceAttachments(
+        container: LinearLayout,
+        attachments: List<CourseAttachmentEntity>
+    ) {
+        container.removeAllViews()
+        if (attachments.isEmpty()) {
+            container.addView(buildWorkspaceEmptyLabel("暂无附件"))
+            return
+        }
+        attachments.forEach { attachment ->
+            val itemView = layoutInflater.inflate(R.layout.item_workspace_entry, container, false)
+            val titleView = itemView.findViewById<TextView>(R.id.tv_entry_title)
+            val metaView = itemView.findViewById<TextView>(R.id.tv_entry_meta)
+            titleView.text = attachment.title
+            metaView.text = formatAttachmentMeta(attachment)
+            itemView.setOnClickListener { openAttachment(attachment) }
+            itemView.setOnLongClickListener {
+                confirmDeleteAttachment(attachment)
+                true
+            }
+            container.addView(itemView)
+        }
+    }
+
+    private fun renderWorkspaceNotes(
+        container: LinearLayout,
+        notes: List<CourseNoteEntity>
+    ) {
+        container.removeAllViews()
+        if (notes.isEmpty()) {
+            container.addView(buildWorkspaceEmptyLabel("暂无笔记"))
+            return
+        }
+        notes.forEach { note ->
+            val itemView = layoutInflater.inflate(R.layout.item_workspace_entry, container, false)
+            val titleView = itemView.findViewById<TextView>(R.id.tv_entry_title)
+            val metaView = itemView.findViewById<TextView>(R.id.tv_entry_meta)
+            titleView.text = formatNotePreview(note.content)
+            metaView.text = formatTimestamp(note.createdAt)
+            itemView.setOnClickListener { showNoteDetail(note) }
+            itemView.setOnLongClickListener {
+                confirmDeleteNote(note)
+                true
+            }
+            container.addView(itemView)
+        }
+    }
+
+    private fun buildWorkspaceEmptyLabel(text: String): TextView {
+        return TextView(this).apply {
+            this.text = text
+            textSize = 12f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+            setPadding(0, dpToPx(4), 0, dpToPx(8))
+        }
+    }
+
+    private fun showQuickNoteDialog(course: Course) {
+        showNoteInputDialog("快速笔记 · ${course.name}", course) {
+            workspaceRefresh?.invoke()
+        }
+    }
+
+    private fun showAddNoteDialog(course: Course, onSaved: () -> Unit) {
+        showNoteInputDialog("新增笔记", course, onSaved)
+    }
+
+    private fun showNoteInputDialog(
+        title: String,
+        course: Course,
+        onSaved: () -> Unit
+    ) {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = dpToPx(16)
+            setPadding(padding, padding, padding, padding)
+        }
+        val input = EditText(this).apply {
+            hint = "记录本节课要点"
+            minLines = 4
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            gravity = Gravity.TOP or Gravity.START
+        }
+        container.addView(input)
+
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(container)
+            .setPositiveButton("保存") { _, _ ->
+                val content = input.text.toString().trim()
+                if (content.isBlank()) {
+                    Toast.makeText(this, "笔记内容不能为空", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                saveNote(course, content, onSaved)
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun showAddLinkDialog(course: Course, onSaved: () -> Unit) {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = dpToPx(16)
+            setPadding(padding, padding, padding, padding)
+        }
+        val titleInput = EditText(this).apply {
+            hint = "链接名称"
+        }
+        val urlInput = EditText(this).apply {
+            hint = "https://example.com"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        }
+        container.addView(titleInput)
+        container.addView(urlInput)
+
+        AlertDialog.Builder(this)
+            .setTitle("添加链接")
+            .setView(container)
+            .setPositiveButton("保存") { _, _ ->
+                val title = titleInput.text.toString().trim()
+                val urlRaw = urlInput.text.toString().trim()
+                if (title.isBlank() || urlRaw.isBlank()) {
+                    Toast.makeText(this, "链接名称和地址不能为空", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val url = if (urlRaw.startsWith("http://") || urlRaw.startsWith("https://")) {
+                    urlRaw
+                } else {
+                    "https://$urlRaw"
+                }
+                saveAttachment(
+                    course = course,
+                    type = CourseAttachmentEntity.TYPE_LINK,
+                    title = title,
+                    url = url,
+                    onSaved = onSaved
+                )
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun showAddTaskDialog(course: Course, onSaved: () -> Unit) {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = dpToPx(16)
+            setPadding(padding, padding, padding, padding)
+        }
+        val titleInput = EditText(this).apply {
+            hint = "作业标题"
+        }
+        val dateLabel = TextView(this).apply {
+            text = "截止日期：未设置"
+        }
+        val pickButton = Button(this).apply {
+            text = "选择日期"
+        }
+        var dueDate: LocalDate? = null
+        pickButton.setOnClickListener {
+            val today = LocalDate.now()
+            DatePickerDialog(
+                this,
+                { _, year, month, day ->
+                    dueDate = LocalDate.of(year, month + 1, day)
+                    dateLabel.text = "截止日期：${dueDate.toString()}"
+                },
+                today.year,
+                today.monthValue - 1,
+                today.dayOfMonth
+            ).show()
+        }
+        container.addView(titleInput)
+        container.addView(dateLabel)
+        container.addView(pickButton)
+
+        AlertDialog.Builder(this)
+            .setTitle("添加作业提醒")
+            .setView(container)
+            .setPositiveButton("保存") { _, _ ->
+                val title = titleInput.text.toString().trim()
+                if (title.isBlank()) {
+                    Toast.makeText(this, "作业标题不能为空", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val dueAt = dueDate?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+                saveAttachment(
+                    course = course,
+                    type = CourseAttachmentEntity.TYPE_TASK,
+                    title = title,
+                    dueAt = dueAt,
+                    onSaved = onSaved
+                )
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun saveAttachment(
+        course: Course,
+        type: String,
+        title: String,
+        uri: String? = null,
+        url: String? = null,
+        dueAt: Long? = null,
+        onSaved: () -> Unit
+    ) {
+        if (course.id <= 0) {
+            Toast.makeText(this, "课程信息无效", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val attachment = CourseAttachmentEntity(
+            semesterId = course.semesterId,
+            courseId = course.id,
+            type = type,
+            title = title,
+            uri = uri,
+            url = url,
+            dueAt = dueAt,
+            createdAt = System.currentTimeMillis()
+        )
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                workspaceRepository.addAttachment(attachment)
+            }
+            onSaved()
+            Toast.makeText(this@MainActivity, "已添加附件", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun saveNote(course: Course, content: String, onSaved: () -> Unit) {
+        if (course.id <= 0) {
+            Toast.makeText(this, "课程信息无效", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val note = CourseNoteEntity(
+            semesterId = course.semesterId,
+            courseId = course.id,
+            content = content,
+            createdAt = System.currentTimeMillis()
+        )
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                workspaceRepository.addNote(note)
+            }
+            onSaved()
+            Toast.makeText(this@MainActivity, "已保存笔记", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun formatAttachmentMeta(attachment: CourseAttachmentEntity): String {
+        val typeLabel = when (attachment.type) {
+            CourseAttachmentEntity.TYPE_PDF -> "PDF讲义"
+            CourseAttachmentEntity.TYPE_LINK -> "链接"
+            CourseAttachmentEntity.TYPE_TASK -> "作业提醒"
+            else -> "附件"
+        }
+        val dueLabel = if (attachment.type == CourseAttachmentEntity.TYPE_TASK && attachment.dueAt != null) {
+            "截止 ${formatDueDate(attachment.dueAt)}"
+        } else {
+            null
+        }
+        return listOfNotNull(typeLabel, dueLabel).joinToString(" · ")
+    }
+
+    private fun formatNotePreview(content: String): String {
+        val trimmed = content.trim().replace("\n", " ")
+        return if (trimmed.length > 24) {
+            trimmed.take(24) + "..."
+        } else {
+            trimmed
+        }
+    }
+
+    private fun formatTimestamp(timestamp: Long): String {
+        val formatter = DateTimeFormatter.ofPattern("MM/dd HH:mm")
+        return Instant.ofEpochMilli(timestamp)
+            .atZone(ZoneId.systemDefault())
+            .format(formatter)
+    }
+
+    private fun formatDueDate(timestamp: Long): String {
+        val formatter = DateTimeFormatter.ofPattern("MM/dd")
+        return Instant.ofEpochMilli(timestamp)
+            .atZone(ZoneId.systemDefault())
+            .format(formatter)
+    }
+
+    private fun openAttachment(attachment: CourseAttachmentEntity) {
+        when (attachment.type) {
+            CourseAttachmentEntity.TYPE_PDF -> openPdfAttachment(attachment)
+            CourseAttachmentEntity.TYPE_LINK -> openWebLink(attachment.url)
+            CourseAttachmentEntity.TYPE_TASK -> showTaskDetail(attachment)
+            else -> Toast.makeText(this, "无法打开该附件", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openPdfAttachment(attachment: CourseAttachmentEntity) {
+        val uriString = attachment.uri ?: return
+        val uri = Uri.parse(uriString)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, "未找到可打开PDF的应用", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openWebLink(url: String?) {
+        if (url.isNullOrBlank()) {
+            Toast.makeText(this, "链接地址无效", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val uri = Uri.parse(url)
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, "无法打开链接", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showTaskDetail(attachment: CourseAttachmentEntity) {
+        val dueText = attachment.dueAt?.let { formatDueDate(it) } ?: "未设置"
+        AlertDialog.Builder(this)
+            .setTitle(attachment.title)
+            .setMessage("作业截止：$dueText")
+            .setPositiveButton("关闭", null)
+            .show()
+    }
+
+    private fun showNoteDetail(note: CourseNoteEntity) {
+        AlertDialog.Builder(this)
+            .setTitle("课程笔记")
+            .setMessage(note.content)
+            .setPositiveButton("关闭", null)
+            .show()
+    }
+
+    private fun confirmDeleteAttachment(attachment: CourseAttachmentEntity) {
+        AlertDialog.Builder(this)
+            .setTitle("删除附件")
+            .setMessage("确定删除“${attachment.title}”吗？")
+            .setPositiveButton("删除") { _, _ ->
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        workspaceRepository.deleteAttachment(attachment)
+                    }
+                    workspaceRefresh?.invoke()
+                    Toast.makeText(this@MainActivity, "附件已删除", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun confirmDeleteNote(note: CourseNoteEntity) {
+        AlertDialog.Builder(this)
+            .setTitle("删除笔记")
+            .setMessage("确定删除这条笔记吗？")
+            .setPositiveButton("删除") { _, _ ->
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        workspaceRepository.deleteNote(note)
+                    }
+                    workspaceRefresh?.invoke()
+                    Toast.makeText(this@MainActivity, "笔记已删除", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     /**
      * 通过反射获取CourseCardView中的课程对象
      */
@@ -1230,6 +1756,7 @@ class MainActivity : AppCompatActivity() {
         val database = AppDatabase.getInstance(this)
         repository = CourseRepository(database.courseDao())
         settingsRepository = SettingsRepository(database.settingsDao(), database.semesterDao())
+        workspaceRepository = WorkspaceRepository(database.workspaceDao())
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 settingsRepository.ensureDefaults()
@@ -1293,6 +1820,21 @@ class MainActivity : AppCompatActivity() {
                 semesters = items
             }
         }
+
+        lifecycleScope.launch {
+            settingsRepository.currentSemesterId
+                .flatMapLatest { semesterId ->
+                    if (semesterId <= 0L) {
+                        flowOf(emptyList())
+                    } else {
+                        workspaceRepository.observeCounts(semesterId)
+                    }
+                }
+                .collect { counts ->
+                    workspaceCounts = counts.associateBy { it.courseId }
+                    requestRender()
+                }
+        }
     }
 
     private fun requestRender() {
@@ -1316,6 +1858,7 @@ class MainActivity : AppCompatActivity() {
         result = 31 * result + viewMode.ordinal
         result = 31 * result + selectedDayOfWeek
         result = 31 * result + currentSemesterId.hashCode()
+        result = 31 * result + workspaceCounts.hashCode()
         return result
     }
 
