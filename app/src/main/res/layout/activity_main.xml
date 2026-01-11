@@ -5,6 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
     tools:context=".MainActivity">
 
     <!-- 顶部工具栏 -->
@@ -16,7 +17,7 @@
         android:background="?attr/colorPrimary"
         android:elevation="4dp"
         app:title=""
-        app:titleTextColor="@android:color/white">
+        app:titleTextColor="?attr/colorOnPrimary">
 
         <LinearLayout
             android:id="@+id/layout_title_info"
@@ -32,7 +33,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="2026年1月10日"
-                android:textColor="@android:color/white"
+                android:textColor="?attr/colorOnPrimary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -41,7 +42,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="第1周 星期六"
-                android:textColor="@android:color/white"
+                android:textColor="?attr/colorOnPrimary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -58,7 +59,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="8dp"
                 android:src="@drawable/ic_arrow_left"
-                app:tint="@android:color/white" />
+                app:tint="?attr/colorOnPrimary" />
 
             <TextView
                 android:id="@+id/tv_current_week"
@@ -67,7 +68,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:text="第1周"
-                android:textColor="@android:color/white"
+                android:textColor="?attr/colorOnPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -78,7 +79,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="8dp"
                 android:src="@drawable/ic_arrow_right"
-                app:tint="@android:color/white" />
+                app:tint="?attr/colorOnPrimary" />
 
         </LinearLayout>
 
@@ -99,7 +100,7 @@
                 android:contentDescription="导入"
                 android:padding="8dp"
                 android:src="@drawable/ic_import"
-                app:tint="@android:color/white" />
+                app:tint="?attr/colorOnPrimary" />
 
             <ImageButton
                 android:id="@+id/btn_settings"
@@ -110,7 +111,7 @@
                 android:contentDescription="设置"
                 android:padding="8dp"
                 android:src="@drawable/ic_settings"
-                app:tint="@android:color/white" />
+                app:tint="?attr/colorOnPrimary" />
         </LinearLayout>
 
     </com.google.android.material.appbar.MaterialToolbar>
@@ -121,6 +122,7 @@
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:layout_below="@id/toolbar"
+        android:background="?attr/colorSurface"
         android:orientation="horizontal">
 
         <!-- 时间列标题 -->
@@ -131,6 +133,7 @@
             android:layout_weight="0"
             android:gravity="center"
             android:text="时间"
+            android:textColor="?android:attr/textColorSecondary"
             android:textStyle="bold" />
 
         <!-- 周一到周日 -->
@@ -153,6 +156,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="1/10"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -175,6 +179,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="1/11"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -197,6 +202,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="1/12"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -219,6 +225,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="1/13"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -241,6 +248,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="1/14"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -263,6 +271,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="1/15"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -285,6 +294,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="1/16"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -318,6 +328,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="0dp"
+        android:background="?attr/colorSurface"
+        app:itemIconTint="@color/bottom_nav_item"
+        app:itemTextColor="@color/bottom_nav_item"
         app:menu="@menu/bottom_nav_menu" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -329,7 +342,8 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="72dp"
         android:contentDescription="添加课程"
+        app:backgroundTint="?attr/colorSecondary"
         app:srcCompat="@drawable/ic_add"
-        app:tint="@android:color/white" />
+        app:tint="?attr/colorOnSecondary" />
 
 </RelativeLayout>

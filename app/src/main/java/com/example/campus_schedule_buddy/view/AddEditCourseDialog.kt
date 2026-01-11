@@ -81,7 +81,7 @@ class AddEditCourseDialog(
         spDayOfWeek.adapter = dayAdapter
 
         // 设置节次下拉列表
-        val periods = (1..8).map { "第${it}节" }.toTypedArray()
+        val periods = (1..8).map { "第${it}" }.toTypedArray()
         val periodAdapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, periods)
         periodAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spStartPeriod.adapter = periodAdapter

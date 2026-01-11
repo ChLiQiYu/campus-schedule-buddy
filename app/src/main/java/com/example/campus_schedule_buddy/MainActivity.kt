@@ -236,12 +236,7 @@ class MainActivity : AppCompatActivity() {
      * 根据系统主题更新背景色
      */
     private fun updateBackgroundColor() {
-        val isDarkMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val backgroundColor = if (isDarkMode) {
-            ContextCompat.getColor(this, R.color.dark_background)
-        } else {
-            ContextCompat.getColor(this, R.color.light_background)
-        }
+        val backgroundColor = ContextCompat.getColor(this, R.color.background)
         scheduleContainer.setBackgroundColor(backgroundColor)
     }
 
@@ -249,21 +244,12 @@ class MainActivity : AppCompatActivity() {
      * 添加网格背景（时间列和分隔线）
      */
     private fun addGridBackground(container: FrameLayout) {
-        val isDarkMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         container.post {
             val rowHeight = getPeriodRowHeight()
             val metrics = calculateGridMetrics(container.width)
             val timeColumnWidth = metrics.timeColumnWidth
-            val lineColor = if (isDarkMode) {
-                ContextCompat.getColor(this, R.color.grid_line_dark)
-            } else {
-                ContextCompat.getColor(this, R.color.grid_line)
-            }
-            val timeTextColor = if (isDarkMode) {
-                ContextCompat.getColor(this, R.color.dark_text_secondary)
-            } else {
-                ContextCompat.getColor(this, R.color.light_text_secondary)
-            }
+            val lineColor = ContextCompat.getColor(this, R.color.grid_line)
+            val timeTextColor = ContextCompat.getColor(this, R.color.text_secondary)
 
             val timeMap = periodTimes.associate { it.period to it }
             val fallbackTimes = mapOf(
