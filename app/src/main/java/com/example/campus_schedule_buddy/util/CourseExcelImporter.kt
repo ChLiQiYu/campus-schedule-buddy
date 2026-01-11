@@ -7,6 +7,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.DataFormatter
 import java.io.InputStream
+import kotlin.random.Random
 
 data class CourseImportResult(
     val courses: List<Course>,
@@ -18,6 +19,13 @@ data class CourseImportResult(
 
 object CourseExcelImporter {
     private val formatter = DataFormatter()
+    private val colorPalette = listOf(
+        0xFF6D8AD6.toInt(),
+        0xFF9A7BB7.toInt(),
+        0xFFD98AA8.toInt(),
+        0xFF7DB8B1.toInt(),
+        0xFF7FB7D6.toInt()
+    )
 
     fun importFromUri(contentResolver: ContentResolver, uri: Uri): CourseImportResult {
         contentResolver.openInputStream(uri).use { inputStream ->
@@ -87,7 +95,7 @@ object CourseExcelImporter {
                         endPeriod = endPeriod,
                         weekPattern = weekPattern,
                         note = null,
-                        color = null
+                        color = colorPalette[Random.nextInt(colorPalette.size)]
                     )
                 )
             }
