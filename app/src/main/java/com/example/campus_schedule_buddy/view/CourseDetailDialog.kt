@@ -9,6 +9,7 @@ import android.view.View
 import android.view.Window
 import android.widget.Button
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.example.campus_schedule_buddy.R
 import com.example.campus_schedule_buddy.model.Course
 
@@ -30,19 +31,14 @@ class CourseDetailDialog(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         )
-        
-        // 根据系统主题设置对话框背景
-        val isDarkMode = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        if (isDarkMode) {
-            window?.setBackgroundDrawableResource(R.drawable.dialog_background)
-        } else {
-            // 在浅色模式下使用白色背景
-            val whiteBackground = GradientDrawable().apply {
-                setColor(context.getColor(R.color.white))
-                cornerRadius = dpToPx(12).toFloat()
-            }
-            window?.setBackgroundDrawable(whiteBackground)
+
+        // 使用主题的surface色，确保浅色和深色模式一致
+        val surfaceColor = ContextCompat.getColor(context, R.color.surface)
+        val surfaceBackground = GradientDrawable().apply {
+            setColor(surfaceColor)
+            cornerRadius = dpToPx(12).toFloat()
         }
+        window?.setBackgroundDrawable(surfaceBackground)
         initView()
     }
 
@@ -191,24 +187,9 @@ class CourseDetailDialog(
         colorLabel: TextView,
         colorValue: TextView
     ) {
-        val isDarkMode = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        
-        // 在浅色模式下，将所有文本设置为黑色以确保良好的可读性
-        val blackColor = context.getColor(R.color.black)
-        val whiteColor = context.getColor(R.color.white)
-        
-        val primaryTextColor = if (isDarkMode) {
-            whiteColor
-        } else {
-            blackColor
-        }
-        
-        val secondaryTextColor = if (isDarkMode) {
-            context.getColor(R.color.dark_text_secondary)
-        } else {
-            blackColor
-        }
-        
+        val primaryTextColor = ContextCompat.getColor(context, R.color.text_primary)
+        val secondaryTextColor = ContextCompat.getColor(context, R.color.text_secondary)
+
         courseNameTextView.setTextColor(primaryTextColor)
         teacherTextView.setTextColor(primaryTextColor)
         locationTextView.setTextColor(secondaryTextColor)
@@ -217,7 +198,7 @@ class CourseDetailDialog(
         noteTextView?.setTextColor(secondaryTextColor)
         noteLabel?.setTextColor(primaryTextColor)
         colorLabel.setTextColor(primaryTextColor)
-        colorValue.setTextColor(whiteColor)
+        colorValue.setTextColor(ContextCompat.getColor(context, R.color.white))
     }
 
     private fun getCourseTypeInfo(type: String): Pair<String, Int> {

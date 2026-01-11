@@ -1,5 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 对话框背景色 -->
-    <color name="dialog_background">#FF2A2A2A</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- 课程类型色彩映射（夜间更柔和） -->
+    <color name="course_major_required">#FF5E6FA6</color>
+    <color name="course_major_elective">#FF7E6A8F</color>
+    <color name="course_public_required">#FFB77A93</color>
+    <color name="course_experiment">#FF5F8F88</color>
+    <color name="course_pe">#FF5D8AA6</color>
+
+    <!-- 主题色（深色模式） -->
+    <color name="primary">#FF7E91D6</color>
+    <color name="on_primary">#FF121418</color>
+    <color name="secondary">#FF9A7BB7</color>
+    <color name="on_secondary">#FF151318</color>
+    <color name="background">#FF1B1D20</color>
+    <color name="on_background">#FFF1F3F5</color>
+    <color name="surface">#FF23262A</color>
+    <color name="on_surface">#FFF1F3F5</color>
+    <color name="outline">#FF2F343A</color>
+    <color name="error">#FFB86363</color>
+    <color name="on_error">#FF1B1010</color>
+
+    <!-- 深色模式背景色 -->
+    <color name="dark_background">#FF1B1D20</color>
+    <color name="dark_surface">#FF23262A</color>
+    <color name="dialog_background">#FF2A2E33</color>
+
+    <!-- 浅色模式背景色（夜间保留默认值） -->
+    <color name="light_background">#FFF3F5F7</color>
+    <color name="light_surface">#FFFFFFFF</color>
+    <color name="dialog_background_light">#FFFFFFFF</color>
+
+    <!-- 文字颜色 -->
+    <color name="dark_text_primary">#FFF1F3F5</color>
+    <color name="dark_text_secondary">#FFB8BEC7</color>
+    <color name="light_text_primary">#FF1B1F24</color>
+    <color name="light_text_secondary">#FF6B7280</color>
+    <color name="text_primary">#FFF1F3F5</color>
+    <color name="text_secondary">#FFB8BEC7</color>
+    <color name="bottom_nav_unchecked">#FFB8BEC7</color>
+
+    <!-- 标题栏颜色 -->
+    <color name="dark_title">#FF23262A</color>
+    <color name="light_title">#FFF4F5F7</color>
+
+    <!-- 卡片与强调色 -->
+    <color name="card_border">#33FFFFFF</color>
+    <color name="card_border_current">#FFFFFFFF</color>
+    <color name="grid_line">#33FFFFFF</color>
+    <color name="grid_line_dark">#33FFFFFF</color>
 </resources>
