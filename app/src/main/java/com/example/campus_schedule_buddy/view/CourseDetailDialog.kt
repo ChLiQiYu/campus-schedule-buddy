@@ -3,7 +3,6 @@ package com.example.campus_schedule_buddy.view
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
@@ -224,11 +223,11 @@ class CourseDetailDialog(
     private fun getCourseTypeInfo(type: String): Pair<String, Int> {
         // 使用文档中定义的课程类型色彩映射
         return when (type) {
-            "pe" -> Pair("体育", Color.parseColor("#4cc9f0"))       // 天蓝：活力/放松
-            "major_required" -> Pair("专业必修", Color.parseColor("#4361ee")) // 蓝色：重要/严肃
-            "major_elective" -> Pair("专业选修", Color.parseColor("#7209b7")) // 紫色：探索/兴趣
-            "public_required" -> Pair("公共必修", Color.parseColor("#f72585")) // 粉红：基础/普及
-            "experiment" -> Pair("实验课", Color.parseColor("#72efdd"))   // 青绿：实践/动手
+            "pe" -> Pair("体育", context.getColor(R.color.course_pe))
+            "major_required" -> Pair("专业必修", context.getColor(R.color.course_major_required))
+            "major_elective" -> Pair("专业选修", context.getColor(R.color.course_major_elective))
+            "public_required" -> Pair("公共必修", context.getColor(R.color.course_public_required))
+            "experiment" -> Pair("实验课", context.getColor(R.color.course_experiment))
             else -> Pair("其他", context.getColor(R.color.course_major_required))
         }
     }

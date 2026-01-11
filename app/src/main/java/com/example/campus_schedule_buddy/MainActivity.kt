@@ -67,6 +67,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var titleWeekDay: TextView
     private lateinit var weekDateLabels: List<TextView>
     private lateinit var gestureDetector: GestureDetector
+    private var lastRenderKey = 0
+    private var renderPending = false
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             handleImportUri(uri)
@@ -672,8 +674,7 @@ class MainActivity : AppCompatActivity() {
             repository.coursesFlow.collect { courses ->
                 courseList.clear()
                 courseList.addAll(courses)
-                updateWeekDisplay()
-                loadScheduleForWeek(currentWeek)
+                requestRender()
                 val reminderConfig = reminderSettings
                 if (reminderConfig != null && periodTimes.isNotEmpty()) {
                     withContext(Dispatchers.Default) {
@@ -701,8 +702,7 @@ class MainActivity : AppCompatActivity() {
                 typeReminders = types
                 semesterStartDate = semester ?: LocalDate.now()
                 currentWeek = getCurrentWeek()
-                updateWeekDisplay()
-                loadScheduleForWeek(currentWeek)
+                requestRender()
                 reminder
             }.collect { reminder ->
                 val reminderConfig = reminder ?: return@collect
@@ -717,6 +717,27 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun requestRender() {
+        if (renderPending) return
+        renderPending = true
+        scheduleContainer.post {
+            renderPending = false
+            val key = computeRenderKey()
+            if (key == lastRenderKey) return@post
+            lastRenderKey = key
+            updateWeekDisplay()
+            loadScheduleForWeek(currentWeek)
+        }
+    }
+
+    private fun computeRenderKey(): Int {
+        var result = currentWeek
+        result = 31 * result + courseList.hashCode()
+        result = 31 * result + periodTimes.hashCode()
+        result = 31 * result + semesterStartDate.hashCode()
+        return result
     }
 
     private fun showAddCourseDialog() {

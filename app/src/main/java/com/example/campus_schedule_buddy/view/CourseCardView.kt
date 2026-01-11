@@ -4,8 +4,8 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
+import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
@@ -286,7 +286,7 @@ class CourseCardView @JvmOverloads constructor(
 /**
  * 优化中文显示的TextView
  * 1. 确保每行显示指定数量的中文字符
- * 2. 超出区域的内容直接裁切，不显示省略号
+ * 2. 超出区域的内容显示省略号
  * 3. 智能调整字体大小以适应空间
  * 4. 继承AppCompatTextView确保兼容性
  */
@@ -300,15 +300,13 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
     private var maxLines = 2                // 最大行数
     private var isBold = false              // 是否加粗
 
-    // 重写以实现裁切而非省略号
-    private var contentRect = Rect()
     private var baseTextSizePx = 0f
 
     init {
-        // 禁用系统省略号
+        // 使用系统省略号
         setHorizontallyScrolling(false)
         setSingleLine(false)
-        ellipsize = null
+        ellipsize = TextUtils.TruncateAt.END
 
     }
 
@@ -330,10 +328,10 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
         gravity = Gravity.TOP or Gravity.START
         baseTextSizePx = textSize
     
-        // 要用系统省略号，我们将手动处理裁切
+        // 使用系统省略号并限制最大行数
         setSingleLine(false)
         this.maxLines = maxLines
-        ellipsize = null
+        ellipsize = TextUtils.TruncateAt.END
     
         // 设置合适的行间距，特别优化数字和字母的显示
         val density = context.resources.displayMetrics.density
@@ -350,28 +348,6 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
         // API 23+ 使用 Layout.BREAK_STRATEGY
 //        breakStrategy = Layout.BREAK_STRATEGY_SIMPLE
         // API < 23 不设置，使用默认换行策略
-    }
-
-    override fun onDraw(canvas: Canvas) {
-        // 保存canvas状态
-        canvas.save()
-
-        // 计算内容区域（考虑padding）
-        contentRect.set(
-            paddingLeft,
-            paddingTop,
-            width - paddingRight,
-            height - paddingBottom
-        )
-
-        // 裁剪绘制区域
-        canvas.clipRect(contentRect)
-
-        // 绘制文本
-        super.onDraw(canvas)
-
-        // 恢复canvas状态
-        canvas.restore()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

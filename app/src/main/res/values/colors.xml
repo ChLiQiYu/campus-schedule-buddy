@@ -4,35 +4,35 @@
     <color name="white">#FFFFFFFF</color>
     
     <!-- 课程类型色彩映射 -->
-    <color name="course_major_required">#FF4361ee</color> <!-- 蓝色：重要/严肃 -->
-    <color name="course_major_elective">#FF7209b7</color> <!-- 紫色：探索/兴趣 -->
-    <color name="course_public_required">#FFf72585</color> <!-- 粉红：基础/普及 -->
-    <color name="course_experiment">#FF72efdd</color> <!-- 青绿：实践/动手 -->
-    <color name="course_pe">#FF4cc9f0</color> <!-- 天蓝：活力/放松 -->
+    <color name="course_major_required">#FF6D8AD6</color> <!-- 柔和蓝：重要/严肃 -->
+    <color name="course_major_elective">#FF9A7BB7</color> <!-- 柔和紫：探索/兴趣 -->
+    <color name="course_public_required">#FFD98AA8</color> <!-- 柔和粉：基础/普及 -->
+    <color name="course_experiment">#FF7DB8B1</color> <!-- 柔和青绿：实践/动手 -->
+    <color name="course_pe">#FF7FB7D6</color> <!-- 柔和天蓝：活力/放松 -->
     
     <!-- 深色模式背景色 -->
-    <color name="dark_background">#FF121212</color>
-    <color name="dark_surface">#FF1E1E1E</color>
-    <color name="dialog_background">#FF2A2A2A</color>
+    <color name="dark_background">#FF1B1D20</color>
+    <color name="dark_surface">#FF23262A</color>
+    <color name="dialog_background">#FF2A2E33</color>
     
     <!-- 浅色模式背景色 -->
-    <color name="light_background">#FFF8F9FA</color>
+    <color name="light_background">#FFF3F5F7</color>
     <color name="light_surface">#FFFFFFFF</color>
     <color name="dialog_background_light">#FFFFFFFF</color>
     
     <!-- 文字颜色 -->
-    <color name="dark_text_primary">#FFFFFFFF</color>
-    <color name="dark_text_secondary">#FFB3B3B3</color>
-    <color name="light_text_primary">#FF121212</color>
-    <color name="light_text_secondary">#FF666666</color>
+    <color name="dark_text_primary">#FFF1F3F5</color>
+    <color name="dark_text_secondary">#FFB8BEC7</color>
+    <color name="light_text_primary">#FF1B1F24</color>
+    <color name="light_text_secondary">#FF6B7280</color>
     
     <!-- 标题栏颜色 -->
-    <color name="dark_title">#FF1E1E1E</color>
-    <color name="light_title">#FFF0F0F0</color>
+    <color name="dark_title">#FF23262A</color>
+    <color name="light_title">#FFF4F5F7</color>
 
     <!-- 卡片与强调色 -->
-    <color name="card_border">#26FFFFFF</color>
+    <color name="card_border">#33FFFFFF</color>
     <color name="card_border_current">#FFFFFFFF</color>
-    <color name="grid_line">#1A000000</color>
-    <color name="grid_line_dark">#26FFFFFF</color>
+    <color name="grid_line">#1F000000</color>
+    <color name="grid_line_dark">#33FFFFFF</color>
 </resources>
