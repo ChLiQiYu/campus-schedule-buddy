@@ -12,6 +12,9 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
+    val semesters = repository.semesters.asLiveData()
+    val currentSemesterId = repository.currentSemesterId.asLiveData()
+    val currentSemester = repository.currentSemester.asLiveData()
     val semesterStartDate = repository.observeSemesterStartDate().asLiveData()
     val periodTimes = repository.periodTimes.asLiveData()
     val reminderSettings = repository.reminderSettings.asLiveData()
@@ -26,6 +29,18 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     fun updateSemesterStart(date: LocalDate) {
         viewModelScope.launch {
             repository.updateSemesterStart(date)
+        }
+    }
+
+    fun setCurrentSemester(semesterId: Long) {
+        viewModelScope.launch {
+            repository.setCurrentSemester(semesterId)
+        }
+    }
+
+    fun createSemester(name: String, startDate: LocalDate) {
+        viewModelScope.launch {
+            repository.createSemester(name, startDate)
         }
     }
 

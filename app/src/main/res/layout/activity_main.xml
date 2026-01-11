@@ -93,24 +93,14 @@
             android:orientation="horizontal">
 
             <ImageButton
-                android:id="@+id/btn_import"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="导入"
-                android:padding="8dp"
-                android:src="@drawable/ic_import"
-                app:tint="?attr/colorOnPrimary" />
-
-            <ImageButton
-                android:id="@+id/btn_settings"
+                android:id="@+id/btn_more"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="设置"
+                android:contentDescription="更多"
                 android:padding="8dp"
-                android:src="@drawable/ic_settings"
+                android:src="@drawable/ic_more"
                 app:tint="?attr/colorOnPrimary" />
         </LinearLayout>
 
@@ -138,6 +128,7 @@
 
         <!-- 周一到周日 -->
         <LinearLayout
+            android:id="@+id/layout_day_mon"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -161,6 +152,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/layout_day_tue"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -184,6 +176,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/layout_day_wed"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -207,6 +200,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/layout_day_thu"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -230,6 +224,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/layout_day_fri"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -253,6 +248,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/layout_day_sat"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -276,6 +272,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/layout_day_sun"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"

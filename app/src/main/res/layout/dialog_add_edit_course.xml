@@ -70,6 +70,20 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
+            <View
+                android:id="@+id/view_color_preview"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="8dp"
+                android:layout_gravity="center_vertical" />
+
+            <Button
+                android:id="@+id/btn_custom_color"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="自定义" />
+
         </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout

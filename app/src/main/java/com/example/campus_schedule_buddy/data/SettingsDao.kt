@@ -8,38 +8,38 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SettingsDao {
-    @Query("SELECT * FROM semester_settings LIMIT 1")
-    fun observeSemesterSettings(): Flow<SemesterSettingsEntity?>
+    @Query("SELECT * FROM app_settings LIMIT 1")
+    fun observeAppSettings(): Flow<AppSettingsEntity?>
 
-    @Query("SELECT * FROM semester_settings LIMIT 1")
-    suspend fun getSemesterSettings(): SemesterSettingsEntity?
+    @Query("SELECT * FROM app_settings LIMIT 1")
+    suspend fun getAppSettings(): AppSettingsEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertSemesterSettings(settings: SemesterSettingsEntity)
+    suspend fun upsertAppSettings(settings: AppSettingsEntity)
 
-    @Query("SELECT * FROM period_times ORDER BY period")
-    fun observePeriodTimes(): Flow<List<PeriodTimeEntity>>
+    @Query("SELECT * FROM period_times WHERE semesterId = :semesterId ORDER BY period")
+    fun observePeriodTimes(semesterId: Long): Flow<List<PeriodTimeEntity>>
 
-    @Query("SELECT * FROM period_times ORDER BY period")
-    suspend fun getPeriodTimes(): List<PeriodTimeEntity>
+    @Query("SELECT * FROM period_times WHERE semesterId = :semesterId ORDER BY period")
+    suspend fun getPeriodTimes(semesterId: Long): List<PeriodTimeEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPeriodTimes(times: List<PeriodTimeEntity>)
 
-    @Query("SELECT * FROM reminder_settings LIMIT 1")
-    fun observeReminderSettings(): Flow<ReminderSettingsEntity?>
+    @Query("SELECT * FROM reminder_settings WHERE semesterId = :semesterId LIMIT 1")
+    fun observeReminderSettings(semesterId: Long): Flow<ReminderSettingsEntity?>
 
-    @Query("SELECT * FROM reminder_settings LIMIT 1")
-    suspend fun getReminderSettings(): ReminderSettingsEntity?
+    @Query("SELECT * FROM reminder_settings WHERE semesterId = :semesterId LIMIT 1")
+    suspend fun getReminderSettings(semesterId: Long): ReminderSettingsEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertReminderSettings(settings: ReminderSettingsEntity)
 
-    @Query("SELECT * FROM course_type_reminders")
-    fun observeCourseTypeReminders(): Flow<List<CourseTypeReminderEntity>>
+    @Query("SELECT * FROM course_type_reminders WHERE semesterId = :semesterId")
+    fun observeCourseTypeReminders(semesterId: Long): Flow<List<CourseTypeReminderEntity>>
 
-    @Query("SELECT * FROM course_type_reminders")
-    suspend fun getCourseTypeReminders(): List<CourseTypeReminderEntity>
+    @Query("SELECT * FROM course_type_reminders WHERE semesterId = :semesterId")
+    suspend fun getCourseTypeReminders(semesterId: Long): List<CourseTypeReminderEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertCourseTypeReminders(items: List<CourseTypeReminderEntity>)

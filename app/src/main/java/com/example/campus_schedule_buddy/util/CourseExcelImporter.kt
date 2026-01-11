@@ -27,14 +27,14 @@ object CourseExcelImporter {
         0xFF7FB7D6.toInt()
     )
 
-    fun importFromUri(contentResolver: ContentResolver, uri: Uri): CourseImportResult {
+    fun importFromUri(contentResolver: ContentResolver, uri: Uri, semesterId: Long): CourseImportResult {
         contentResolver.openInputStream(uri).use { inputStream ->
             requireNotNull(inputStream) { "无法打开文件" }
-            return parseWorkbook(inputStream)
+            return parseWorkbook(inputStream, semesterId)
         }
     }
 
-    private fun parseWorkbook(inputStream: InputStream): CourseImportResult {
+    private fun parseWorkbook(inputStream: InputStream, semesterId: Long): CourseImportResult {
         HSSFWorkbook(inputStream).use { workbook ->
             val sheet = workbook.getSheetAt(0)
             val headerRow = sheet.getRow(0)
@@ -86,6 +86,7 @@ object CourseExcelImporter {
                 courses.add(
                     Course(
                         id = 0,
+                        semesterId = semesterId,
                         name = courseName,
                         teacher = teacher?.takeIf { it.isNotBlank() },
                         location = location?.takeIf { it.isNotBlank() },

@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CourseDao {
-    @Query("SELECT * FROM courses ORDER BY dayOfWeek, startPeriod")
-    fun observeCourses(): Flow<List<Course>>
+    @Query("SELECT * FROM courses WHERE semesterId = :semesterId ORDER BY dayOfWeek, startPeriod")
+    fun observeCourses(semesterId: Long): Flow<List<Course>>
 
-    @Query("SELECT * FROM courses")
-    suspend fun getAllCourses(): List<Course>
+    @Query("SELECT * FROM courses WHERE semesterId = :semesterId")
+    suspend fun getAllCourses(semesterId: Long): List<Course>
 
     @Insert
     suspend fun insert(course: Course): Long
@@ -29,12 +29,12 @@ interface CourseDao {
     @Delete
     suspend fun delete(course: Course)
 
-    @Query("DELETE FROM courses")
-    suspend fun deleteAll()
+    @Query("DELETE FROM courses WHERE semesterId = :semesterId")
+    suspend fun deleteAll(semesterId: Long)
 
     @Transaction
-    suspend fun replaceAll(courses: List<Course>) {
-        deleteAll()
+    suspend fun replaceAll(semesterId: Long, courses: List<Course>) {
+        deleteAll(semesterId)
         if (courses.isNotEmpty()) {
             insertAll(courses)
         }

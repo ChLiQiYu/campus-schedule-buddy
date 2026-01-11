@@ -10,6 +10,10 @@ import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.Button
 import android.widget.Toast
 
 import androidx.appcompat.app.AppCompatActivity
@@ -25,14 +29,19 @@ import com.example.campus_schedule_buddy.data.CourseTypeReminderEntity
 import com.example.campus_schedule_buddy.data.PeriodTimeEntity
 import com.example.campus_schedule_buddy.data.ReminderSettingsEntity
 import com.example.campus_schedule_buddy.data.SettingsRepository
+import com.example.campus_schedule_buddy.data.SemesterEntity
 import com.example.campus_schedule_buddy.view.CourseCardView
 import com.example.campus_schedule_buddy.view.CourseDetailDialog
 import com.example.campus_schedule_buddy.view.AddEditCourseDialog
 import android.os.Handler
 import android.os.Looper
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.activity.enableEdgeToEdge
@@ -40,11 +49,13 @@ import com.example.campus_schedule_buddy.reminder.ReminderScheduler
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import com.example.campus_schedule_buddy.util.CourseExcelImporter
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import android.database.Cursor
@@ -55,8 +66,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCurrentWeek: TextView
     private lateinit var btnPreviousWeek: ImageButton
     private lateinit var btnNextWeek: ImageButton
-    private lateinit var btnSettings: ImageButton
-    private lateinit var btnImport: ImageButton
+    private lateinit var btnMore: ImageButton
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var fabAddCourse: FloatingActionButton
@@ -66,12 +76,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var titleDate: TextView
     private lateinit var titleWeekDay: TextView
     private lateinit var weekDateLabels: List<TextView>
+    private lateinit var weekDayLabels: List<TextView>
+    private lateinit var dayColumnLayouts: List<LinearLayout>
     private lateinit var gestureDetector: GestureDetector
     private var lastRenderKey = 0
     private var renderPending = false
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             handleImportUri(uri)
+        }
+    }
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            handleExportUri(uri)
         }
     }
 
@@ -87,6 +104,16 @@ class MainActivity : AppCompatActivity() {
     private var semesterStartDate: LocalDate = LocalDate.now()
     private var reminderSettings: ReminderSettingsEntity? = null
     private var typeReminders: List<CourseTypeReminderEntity> = emptyList()
+    private var currentSemesterId: Long = 0L
+    private var semesters: List<SemesterEntity> = emptyList()
+    private var selectedDayOfWeek: Int = LocalDate.now().dayOfWeek.value
+    private var viewMode: ViewMode = ViewMode.WEEK
+
+    private enum class ViewMode {
+        DAY,
+        WEEK,
+        MONTH
+    }
 
     // 用于定期更新当前课程高亮状态
     private val handler = Handler(Looper.getMainLooper())
@@ -123,8 +150,7 @@ class MainActivity : AppCompatActivity() {
         tvCurrentWeek = findViewById(R.id.tv_current_week)
         btnPreviousWeek = findViewById(R.id.btn_previous_week)
         btnNextWeek = findViewById(R.id.btn_next_week)
-        btnSettings = findViewById(R.id.btn_settings)
-        btnImport = findViewById(R.id.btn_import)
+        btnMore = findViewById(R.id.btn_more)
         scheduleContainer = findViewById(R.id.schedule_container)
         scrollView = findViewById(R.id.scrollView)
         fabAddCourse = findViewById(R.id.fab_add_course)
@@ -142,6 +168,25 @@ class MainActivity : AppCompatActivity() {
             findViewById(R.id.tv_date_sat),
             findViewById(R.id.tv_date_sun)
         )
+        weekDayLabels = listOf(
+            findViewById(R.id.tv_day_mon),
+            findViewById(R.id.tv_day_tue),
+            findViewById(R.id.tv_day_wed),
+            findViewById(R.id.tv_day_thu),
+            findViewById(R.id.tv_day_fri),
+            findViewById(R.id.tv_day_sat),
+            findViewById(R.id.tv_day_sun)
+        )
+        dayColumnLayouts = listOf(
+            findViewById(R.id.layout_day_mon),
+            findViewById(R.id.layout_day_tue),
+            findViewById(R.id.layout_day_wed),
+            findViewById(R.id.layout_day_thu),
+            findViewById(R.id.layout_day_fri),
+            findViewById(R.id.layout_day_sat),
+            findViewById(R.id.layout_day_sun)
+        )
+        updateWeekHeaderVisibility()
         updateWeekHeaderLayout()
         setupGestureDetector()
     }
@@ -163,12 +208,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        btnSettings.setOnClickListener {
-            startActivity(android.content.Intent(this, SettingsActivity::class.java))
+        btnMore.setOnClickListener {
+            showMoreMenu()
         }
 
-        btnImport.setOnClickListener {
-            launchImportPicker()
+        dayColumnLayouts.forEachIndexed { index, layout ->
+            layout.setOnClickListener {
+                selectedDayOfWeek = index + 1
+                updateSelectedDayHighlight()
+                if (viewMode == ViewMode.DAY) {
+                    updateWeekHeaderVisibility()
+                    updateWeekHeaderLayout()
+                    requestRender()
+                }
+            }
         }
 
         fabAddCourse.setOnClickListener {
@@ -192,6 +245,7 @@ class MainActivity : AppCompatActivity() {
         tvCurrentWeek.text = "第${currentWeek}周"
         updateWeekHeaderDates()
         updateTitleInfo()
+        updateSelectedDayHighlight()
 
         // 更新按钮状态
         btnPreviousWeek.isEnabled = currentWeek > 1
@@ -205,31 +259,78 @@ class MainActivity : AppCompatActivity() {
         // 设置背景色
         updateBackgroundColor()
 
-        // 获取该周的课程数据
-        val courses = courseList.filter { it.weekPattern.contains(week) }
+        when (viewMode) {
+            ViewMode.MONTH -> renderMonthView(week)
+            ViewMode.DAY -> renderDayView(week)
+            ViewMode.WEEK -> renderWeekView(week)
+        }
+    }
 
-        // 创建课程表主容器（使用FrameLayout实现绝对定位）
-        val scheduleFrameLayout = FrameLayout(this).apply {
+    private fun renderWeekView(week: Int) {
+        val courses = courseList.filter { it.weekPattern.contains(week) }
+        val scheduleFrameLayout = buildScheduleFrameLayout()
+        addGridBackground(scheduleFrameLayout, dayCount = 7)
+        courses.forEach { course ->
+            addCourseCard(scheduleFrameLayout, course, dayIndexInView = course.dayOfWeek - 1, dayCount = 7)
+        }
+        scheduleContainer.addView(scheduleFrameLayout)
+        highlightCurrentCourse()
+    }
+
+    private fun renderDayView(week: Int) {
+        val courses = courseList.filter {
+            it.weekPattern.contains(week) && it.dayOfWeek == selectedDayOfWeek
+        }
+        val scheduleFrameLayout = buildScheduleFrameLayout()
+        addGridBackground(scheduleFrameLayout, dayCount = 1)
+        courses.forEach { course ->
+            addCourseCard(scheduleFrameLayout, course, dayIndexInView = 0, dayCount = 1)
+        }
+        scheduleContainer.addView(scheduleFrameLayout)
+        highlightCurrentCourse()
+    }
+
+    private fun renderMonthView(week: Int) {
+        val weekStart = getWeekStartDate(week)
+        val monthStart = weekStart.withDayOfMonth(1)
+        val monthEnd = monthStart.plusMonths(1).minusDays(1)
+        val listContainer = LinearLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                getPeriodRowHeight() * 8 // 8节课的总高度
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            orientation = LinearLayout.VERTICAL
+        }
+        var date = monthStart
+        while (!date.isAfter(monthEnd)) {
+            val dayView = layoutInflater.inflate(R.layout.item_month_day, listContainer, false)
+            val dayLabel = dayView.findViewById<TextView>(R.id.tv_month_day)
+            val summaryLabel = dayView.findViewById<TextView>(R.id.tv_month_summary)
+            val weekIndex = getWeekIndexForDate(date)
+            val courses = if (weekIndex > 0) {
+                courseList.filter { course ->
+                    course.dayOfWeek == date.dayOfWeek.value && course.weekPattern.contains(weekIndex)
+                }
+            } else {
+                emptyList()
+            }
+            dayLabel.text = "${date.monthValue}/${date.dayOfMonth} ${formatWeekday(date.dayOfWeek.value)}"
+            summaryLabel.text = formatMonthSummary(courses)
+            listContainer.addView(dayView)
+            date = date.plusDays(1)
+        }
+        scheduleContainer.addView(listContainer)
+    }
+
+    private fun buildScheduleFrameLayout(): FrameLayout {
+        return FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                getPeriodRowHeight() * 8
             )
             clipChildren = false
             clipToPadding = false
         }
-
-        // 先添加网格背景（时间列和分隔线）
-        addGridBackground(scheduleFrameLayout)
-
-        // 再添加课程卡片（后添加的在上层，不会被网格遮挡）
-        courses.forEach { course ->
-            addCourseCard(scheduleFrameLayout, course)
-        }
-
-        scheduleContainer.addView(scheduleFrameLayout)
-
-        // 高亮当前时间的课程
-        highlightCurrentCourse()
     }
 
     /**
@@ -243,10 +344,10 @@ class MainActivity : AppCompatActivity() {
     /**
      * 添加网格背景（时间列和分隔线）
      */
-    private fun addGridBackground(container: FrameLayout) {
+    private fun addGridBackground(container: FrameLayout, dayCount: Int) {
         container.post {
             val rowHeight = getPeriodRowHeight()
-            val metrics = calculateGridMetrics(container.width)
+            val metrics = calculateGridMetrics(container.width, dayCount)
             val timeColumnWidth = metrics.timeColumnWidth
             val lineColor = ContextCompat.getColor(this, R.color.grid_line)
             val timeTextColor = ContextCompat.getColor(this, R.color.text_secondary)
@@ -303,7 +404,7 @@ class MainActivity : AppCompatActivity() {
 
             // 添加垂直分隔线
             val totalHeight = rowHeight * 8
-            for (i in 0..7) {
+            for (i in 0..dayCount) {
                 val divider = View(this).apply {
                     setBackgroundColor(lineColor)
                 }
@@ -320,7 +421,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateWeekHeaderLayout() {
         weekHeader.post {
-            val metrics = calculateGridMetrics(weekHeader.width)
+            val dayCount = if (viewMode == ViewMode.DAY) 1 else 7
+            val metrics = calculateGridMetrics(weekHeader.width, dayCount)
             val params = timeHeader.layoutParams as LinearLayout.LayoutParams
             params.width = metrics.timeColumnWidth + metrics.innerPadding
             timeHeader.layoutParams = params
@@ -341,6 +443,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateWeekHeaderVisibility() {
+        weekHeader.visibility = if (viewMode == ViewMode.MONTH) View.GONE else View.VISIBLE
+        dayColumnLayouts.forEachIndexed { index, layout ->
+            val shouldShow = viewMode != ViewMode.DAY || index + 1 == selectedDayOfWeek
+            layout.visibility = if (shouldShow) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun updateSelectedDayHighlight() {
+        val primary = ContextCompat.getColor(this, R.color.primary)
+        val dayColor = ContextCompat.getColor(this, R.color.text_primary)
+        val dateColor = ContextCompat.getColor(this, R.color.text_secondary)
+        weekDayLabels.forEachIndexed { index, label ->
+            val selected = viewMode == ViewMode.DAY && index + 1 == selectedDayOfWeek
+            label.setTextColor(if (selected) primary else dayColor)
+            weekDateLabels[index].setTextColor(if (selected) primary else dateColor)
+        }
+    }
+
     private fun updateTitleInfo() {
         val today = LocalDate.now()
         val todayDayIndex = today.dayOfWeek.value
@@ -355,6 +476,155 @@ class MainActivity : AppCompatActivity() {
         }
         titleDate.text = "${today.year}年${today.monthValue}月${today.dayOfMonth}日"
         titleWeekDay.text = "第${getCurrentWeek()}周 $weekDayName"
+    }
+
+    private fun showMoreMenu() {
+        val dialog = BottomSheetDialog(this)
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_main_menu, null)
+        val toggleGroup = sheetView.findViewById<MaterialButtonToggleGroup>(R.id.toggle_view_mode_sheet)
+        val btnDay = sheetView.findViewById<MaterialButton>(R.id.btn_view_day_sheet)
+        val btnWeek = sheetView.findViewById<MaterialButton>(R.id.btn_view_week_sheet)
+        val btnMonth = sheetView.findViewById<MaterialButton>(R.id.btn_view_month_sheet)
+        val spinner = sheetView.findViewById<Spinner>(R.id.spinner_semester_sheet)
+        val addSemesterButton = sheetView.findViewById<ImageButton>(R.id.btn_add_semester_sheet)
+        val importButton = sheetView.findViewById<Button>(R.id.btn_import_sheet)
+        val exportButton = sheetView.findViewById<Button>(R.id.btn_export_sheet)
+        val settingsButton = sheetView.findViewById<Button>(R.id.btn_open_settings_sheet)
+
+        val checkedId = when (viewMode) {
+            ViewMode.DAY -> btnDay.id
+            ViewMode.MONTH -> btnMonth.id
+            ViewMode.WEEK -> btnWeek.id
+        }
+        toggleGroup.check(checkedId)
+        toggleGroup.addOnButtonCheckedListener { _, checkedIdNew, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val newMode = when (checkedIdNew) {
+                btnDay.id -> ViewMode.DAY
+                btnMonth.id -> ViewMode.MONTH
+                else -> ViewMode.WEEK
+            }
+            if (viewMode != newMode) {
+                viewMode = newMode
+                updateWeekHeaderVisibility()
+                updateWeekHeaderLayout()
+                updateSelectedDayHighlight()
+                requestRender()
+            }
+            dialog.dismiss()
+        }
+
+        val names = if (semesters.isEmpty()) listOf("暂无学期") else semesters.map { it.name }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, names)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+        spinner.isEnabled = semesters.isNotEmpty()
+        val currentIndex = semesters.indexOfFirst { it.id == currentSemesterId }.coerceAtLeast(0)
+        var skipSelection = true
+        if (currentIndex >= 0 && semesters.isNotEmpty()) {
+            spinner.setSelection(currentIndex, false)
+        }
+        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: android.widget.AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                if (skipSelection) {
+                    skipSelection = false
+                    return
+                }
+                val selected = semesters.getOrNull(position) ?: return
+                if (!::settingsRepository.isInitialized) return
+                if (selected.id != currentSemesterId) {
+                    lifecycleScope.launch {
+                        settingsRepository.setCurrentSemester(selected.id)
+                    }
+                }
+                dialog.dismiss()
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
+
+        addSemesterButton.setOnClickListener {
+            dialog.dismiss()
+            showCreateSemesterDialog()
+        }
+
+        importButton.setOnClickListener {
+            dialog.dismiss()
+            launchImportPicker()
+        }
+
+        exportButton.setOnClickListener {
+            dialog.dismiss()
+            launchExportPicker()
+        }
+
+        settingsButton.setOnClickListener {
+            dialog.dismiss()
+            startActivity(android.content.Intent(this, SettingsActivity::class.java))
+        }
+
+        dialog.setContentView(sheetView)
+        dialog.show()
+    }
+
+    private fun showCreateSemesterDialog() {
+        if (!::settingsRepository.isInitialized) {
+            Toast.makeText(this, "学期数据尚未就绪", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = dpToPx(16)
+            setPadding(padding, padding, padding, padding)
+        }
+        val nameInput = EditText(this).apply {
+            hint = "学期名称"
+        }
+        val dateLabel = TextView(this).apply {
+            text = "开始日期：${LocalDate.now()}"
+        }
+        val pickDateButton = Button(this).apply {
+            text = "选择日期"
+        }
+        var selectedDate = LocalDate.now()
+        pickDateButton.setOnClickListener {
+            val today = LocalDate.now()
+            DatePickerDialog(
+                this,
+                { _, year, month, day ->
+                    selectedDate = LocalDate.of(year, month + 1, day)
+                    dateLabel.text = "开始日期：$selectedDate"
+                },
+                today.year,
+                today.monthValue - 1,
+                today.dayOfMonth
+            ).show()
+        }
+        container.addView(nameInput)
+        container.addView(dateLabel)
+        container.addView(pickDateButton)
+
+        AlertDialog.Builder(this)
+            .setTitle("新增学期")
+            .setView(container)
+            .setPositiveButton("创建") { _, _ ->
+                val name = nameInput.text.toString().trim()
+                val finalName = if (name.isBlank()) {
+                    "学期${selectedDate.year}"
+                } else {
+                    name
+                }
+                lifecycleScope.launch {
+                    settingsRepository.createSemester(finalName, selectedDate)
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun setupGestureDetector() {
@@ -374,15 +644,23 @@ class MainActivity : AppCompatActivity() {
                 val diffY = e2.y - e1.y
                 if (kotlin.math.abs(diffX) > kotlin.math.abs(diffY) && kotlin.math.abs(diffX) > dpToPx(64)) {
                     if (diffX > 0) {
-                        changeWeekBy(-1)
+                        handleHorizontalSwipe(-1)
                     } else {
-                        changeWeekBy(1)
+                        handleHorizontalSwipe(1)
                     }
                     return true
                 }
                 return false
             }
         })
+    }
+
+    private fun handleHorizontalSwipe(direction: Int) {
+        when (viewMode) {
+            ViewMode.DAY -> changeDayBy(direction)
+            ViewMode.MONTH -> changeMonthBy(direction)
+            ViewMode.WEEK -> changeWeekBy(direction)
+        }
     }
 
     private fun changeWeekBy(delta: Int) {
@@ -393,10 +671,46 @@ class MainActivity : AppCompatActivity() {
         loadScheduleForWeek(currentWeek)
     }
 
+    private fun changeDayBy(delta: Int) {
+        var newDay = selectedDayOfWeek + delta
+        var newWeek = currentWeek
+        if (newDay < 1) {
+            newDay = 7
+            newWeek -= 1
+        } else if (newDay > 7) {
+            newDay = 1
+            newWeek += 1
+        }
+        if (newWeek !in 1..totalWeeks) return
+        if (newWeek == currentWeek && newDay == selectedDayOfWeek) return
+        currentWeek = newWeek
+        selectedDayOfWeek = newDay
+        updateWeekHeaderVisibility()
+        updateWeekDisplay()
+        loadScheduleForWeek(currentWeek)
+    }
+
+    private fun changeMonthBy(delta: Int) {
+        val weekStart = getWeekStartDate(currentWeek)
+        val monthStart = weekStart.withDayOfMonth(1)
+        val targetMonthStart = monthStart.plusMonths(delta.toLong())
+        val weekIndex = getWeekIndexForDate(targetMonthStart)
+        if (weekIndex !in 1..totalWeeks) return
+        if (weekIndex == currentWeek) return
+        currentWeek = weekIndex
+        updateWeekDisplay()
+        loadScheduleForWeek(currentWeek)
+    }
+
     /**
      * 添加课程卡片（绝对定位，支持跨节课程）
      */
-    private fun addCourseCard(container: FrameLayout, course: Course) {
+    private fun addCourseCard(
+        container: FrameLayout,
+        course: Course,
+        dayIndexInView: Int,
+        dayCount: Int
+    ) {
         val rowHeight = getPeriodRowHeight()
         
         // 等待容器测量完成后再计算位置
@@ -404,12 +718,12 @@ class MainActivity : AppCompatActivity() {
             val containerWidth = container.width
             if (containerWidth <= 0) return@post
 
-            val metrics = calculateGridMetrics(containerWidth)
+            val metrics = calculateGridMetrics(containerWidth, dayCount)
             
             // 计算课程卡片的位置和尺寸
             val span = course.endPeriod - course.startPeriod + 1
             val cardLeft = metrics.innerPadding + metrics.timeColumnWidth +
-                (course.dayOfWeek - 1) * metrics.dayColumnWidth + metrics.columnGap
+                dayIndexInView * metrics.dayColumnWidth + metrics.columnGap
             val cardTop = (course.startPeriod - 1) * rowHeight + metrics.columnGap
             val cardWidth = metrics.dayColumnWidth - metrics.columnGap * 2
             val cardHeight = rowHeight * span - metrics.columnGap * 2
@@ -492,34 +806,294 @@ class MainActivity : AppCompatActivity() {
         return ((daysDiff / 7).toInt() + 1).coerceAtLeast(1)
     }
 
+    private fun getWeekIndexForDate(date: LocalDate): Int {
+        val daysDiff = ChronoUnit.DAYS.between(semesterStartDate, date)
+        if (daysDiff < 0) return -1
+        return (daysDiff / 7).toInt() + 1
+    }
+
     private fun getWeekStartDate(week: Int): LocalDate {
         return semesterStartDate.plusDays(((week - 1) * 7).toLong())
     }
 
+    private fun formatWeekday(dayIndex: Int): String {
+        return when (dayIndex) {
+            1 -> "周一"
+            2 -> "周二"
+            3 -> "周三"
+            4 -> "周四"
+            5 -> "周五"
+            6 -> "周六"
+            else -> "周日"
+        }
+    }
+
+    private fun formatMonthSummary(courses: List<Course>): String {
+        if (courses.isEmpty()) return "无课程"
+        val names = courses.map { it.name }.distinct()
+        val preview = names.take(2).joinToString("、")
+        val extra = if (names.size > 2) " 等${names.size}门" else ""
+        return "课程：$preview$extra"
+    }
+
     private fun launchImportPicker() {
-        importLauncher.launch(arrayOf("application/vnd.ms-excel", "application/octet-stream"))
+        importLauncher.launch(
+            arrayOf(
+                "application/vnd.ms-excel",
+                "application/octet-stream",
+                "application/json",
+                "text/json"
+            )
+        )
     }
 
     private fun handleImportUri(uri: Uri) {
         val fileName = resolveFileName(uri)
-        if (fileName != null && !fileName.lowercase().endsWith(".xls")) {
-            Toast.makeText(this, "请选择.xls格式的课表文件", Toast.LENGTH_SHORT).show()
+        val lowerName = fileName?.lowercase().orEmpty()
+        val mimeType = contentResolver.getType(uri).orEmpty()
+        val isJson = lowerName.endsWith(".json") || mimeType.contains("json")
+        val isXls = lowerName.endsWith(".xls") || mimeType.contains("ms-excel")
+        if (!isJson && !isXls) {
+            Toast.makeText(this, "请选择.xls或.json格式的课表文件", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (isJson) {
+            importFromJson(uri)
+        } else {
+            importFromExcel(uri)
+        }
+    }
+
+    private fun launchExportPicker() {
+        val name = "课表_${LocalDate.now()}.json"
+        exportLauncher.launch(name)
+    }
+
+    private fun handleExportUri(uri: Uri) {
+        val semester = semesters.firstOrNull { it.id == currentSemesterId }
+        val json = com.example.campus_schedule_buddy.util.CourseJsonSerializer.toJson(
+            semester = semester,
+            periodTimes = periodTimes,
+            reminderSettings = reminderSettings,
+            courseTypeReminders = typeReminders,
+            courses = courseList
+        )
+        lifecycleScope.launch(Dispatchers.IO) {
+            val success = contentResolver.openOutputStream(uri)?.use { output ->
+                output.write(json.toByteArray(Charsets.UTF_8))
+                output.flush()
+                true
+            } ?: false
+            withContext(Dispatchers.Main) {
+                val message = if (success) "导出完成" else "导出失败"
+                Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun importFromExcel(uri: Uri) {
+        if (currentSemesterId <= 0L) {
+            Toast.makeText(this, "当前学期未就绪，稍后重试", Toast.LENGTH_SHORT).show()
             return
         }
         val progressDialog = showImportProgress()
         lifecycleScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
-                    CourseExcelImporter.importFromUri(contentResolver, uri)
+                    CourseExcelImporter.importFromUri(contentResolver, uri, currentSemesterId)
                 }
+                progressDialog.dismiss()
                 if (result.courses.isEmpty()) {
                     throw IllegalStateException("未解析到课程数据，请检查课表格式")
                 }
+                confirmAndImportCourses(
+                    semesterId = currentSemesterId,
+                    courses = result.courses,
+                    skippedCount = result.skippedCount
+                )
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Toast.makeText(
+                    this@MainActivity,
+                    "导入失败：${e.message ?: "未知错误"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun importFromJson(uri: Uri) {
+        if (currentSemesterId <= 0L) {
+            Toast.makeText(this, "当前学期未就绪，稍后重试", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val progressDialog = showImportProgress()
+        lifecycleScope.launch {
+            try {
+                val json = withContext(Dispatchers.IO) {
+                    contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                        ?: ""
+                }
+                val payload = com.example.campus_schedule_buddy.util.CourseJsonSerializer.fromJson(json, currentSemesterId)
+                progressDialog.dismiss()
+                if (payload.courses.isEmpty()) {
+                    throw IllegalStateException("未解析到课程数据，请检查导出文件")
+                }
+                val semesterName = payload.semesterName
+                val semesterStart = payload.semesterStartDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+                if (semesterName != null || semesterStart != null) {
+                    showJsonImportTargetDialog(payload, semesterName, semesterStart)
+                } else {
+                    importJsonPayloadToSemester(payload, currentSemesterId)
+                }
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Toast.makeText(
+                    this@MainActivity,
+                    "导入失败：${e.message ?: "未知错误"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun showJsonImportTargetDialog(
+        payload: com.example.campus_schedule_buddy.util.CourseJsonPayload,
+        semesterName: String?,
+        semesterStart: LocalDate?
+    ) {
+        val displayName = semesterName ?: "导入学期"
+        val displayDate = semesterStart?.toString() ?: "未提供"
+        AlertDialog.Builder(this)
+            .setTitle("导入课表")
+            .setMessage("检测到学期信息：$displayName（$displayDate）")
+            .setPositiveButton("导入为新学期") { _, _ ->
+                lifecycleScope.launch {
+                    val name = semesterName ?: "导入学期"
+                    val startDate = semesterStart ?: LocalDate.now()
+                    val semesterId = settingsRepository.createSemester(name, startDate)
+                    importJsonPayloadToSemester(payload, semesterId)
+                }
+            }
+            .setNegativeButton("覆盖当前学期") { _, _ ->
+                importJsonPayloadToSemester(payload, currentSemesterId)
+            }
+            .setNeutralButton("取消", null)
+            .show()
+    }
+
+    private fun importJsonPayloadToSemester(
+        payload: com.example.campus_schedule_buddy.util.CourseJsonPayload,
+        semesterId: Long
+    ) {
+        val courses = payload.courses.map { it.copy(semesterId = semesterId) }
+        val periodUpdates = payload.periodTimes.map { it.copy(semesterId = semesterId) }
+        val reminderUpdate = payload.reminderSettings?.copy(semesterId = semesterId)
+        val typeUpdates = payload.courseTypeReminders.map { it.copy(semesterId = semesterId) }
+        val startDate = payload.semesterStartDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
+        confirmAndImportCourses(
+            semesterId = semesterId,
+            courses = courses,
+            skippedCount = 0
+        ) {
+            if (semesterId != currentSemesterId) {
+                settingsRepository.setCurrentSemester(semesterId)
+            }
+            if (periodUpdates.isNotEmpty()) {
+                settingsRepository.updatePeriodTimes(periodUpdates)
+            }
+            if (reminderUpdate != null) {
+                settingsRepository.updateReminderSettings(reminderUpdate)
+            }
+            if (typeUpdates.isNotEmpty()) {
+                settingsRepository.updateCourseTypeReminders(typeUpdates)
+            }
+            if (startDate != null) {
+                settingsRepository.updateSemesterStart(startDate)
+            }
+        }
+    }
+
+    private data class ConflictFilterResult(
+        val courses: List<Course>,
+        val conflictCount: Int,
+        val duplicateCount: Int
+    )
+
+    private fun filterConflicts(courses: List<Course>): ConflictFilterResult {
+        val accepted = mutableListOf<Course>()
+        val signatures = mutableSetOf<String>()
+        var conflictCount = 0
+        var duplicateCount = 0
+        courses.forEach { course ->
+            val signature = buildString {
+                append(course.name)
+                append('|')
+                append(course.dayOfWeek)
+                append('|')
+                append(course.startPeriod)
+                append('|')
+                append(course.endPeriod)
+                append('|')
+                append(course.weekPattern.joinToString(","))
+            }
+            if (!signatures.add(signature)) {
+                duplicateCount += 1
+                return@forEach
+            }
+            val conflict = accepted.any { existing ->
+                existing.dayOfWeek == course.dayOfWeek &&
+                    existing.weekPattern.any { it in course.weekPattern } &&
+                    existing.startPeriod <= course.endPeriod &&
+                    existing.endPeriod >= course.startPeriod
+            }
+            if (conflict) {
+                conflictCount += 1
+            } else {
+                accepted.add(course)
+            }
+        }
+        return ConflictFilterResult(accepted, conflictCount, duplicateCount)
+    }
+
+    private fun confirmAndImportCourses(
+        semesterId: Long,
+        courses: List<Course>,
+        skippedCount: Int,
+        onBeforeReplace: (suspend () -> Unit)? = null
+    ) {
+        val filtered = filterConflicts(courses)
+        if (filtered.conflictCount > 0 || filtered.duplicateCount > 0) {
+            val message = "检测到${filtered.conflictCount}条时间冲突、${filtered.duplicateCount}条重复课程，将自动跳过冲突项。"
+            AlertDialog.Builder(this)
+                .setTitle("导入冲突提示")
+                .setMessage(message)
+                .setPositiveButton("继续导入") { _, _ ->
+                    applyImportCourses(semesterId, filtered, skippedCount, onBeforeReplace)
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        } else {
+            applyImportCourses(semesterId, filtered, skippedCount, onBeforeReplace)
+        }
+    }
+
+    private fun applyImportCourses(
+        semesterId: Long,
+        filtered: ConflictFilterResult,
+        skippedCount: Int,
+        onBeforeReplace: (suspend () -> Unit)? = null
+    ) {
+        val progressDialog = showImportProgress()
+        lifecycleScope.launch {
+            try {
                 withContext(Dispatchers.IO) {
-                    repository.replaceAll(result.courses)
+                    onBeforeReplace?.invoke()
+                    repository.replaceAll(semesterId, filtered.courses)
                 }
                 progressDialog.dismiss()
-                val message = "导入完成：成功${result.courses.size}条，跳过${result.skippedCount}条"
+                val message = "导入完成：成功${filtered.courses.size}条，跳过${skippedCount + filtered.conflictCount + filtered.duplicateCount}条"
                 Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 progressDialog.dismiss()
@@ -638,13 +1212,16 @@ class MainActivity : AppCompatActivity() {
         val innerPadding: Int
     )
 
-    private fun calculateGridMetrics(containerWidth: Int): GridMetrics {
+    private fun calculateGridMetrics(containerWidth: Int, dayCount: Int): GridMetrics {
         val innerPadding = dpToPx(4)
         val minTimeWidth = dpToPx(42)
         val maxTimeWidth = dpToPx(56)
         val availableWidth = (containerWidth - innerPadding * 2).coerceAtLeast(0)
         val timeColumnWidth = (availableWidth * 0.13f).toInt().coerceIn(minTimeWidth, maxTimeWidth)
-        val dayColumnWidth = ((availableWidth - timeColumnWidth) / 7f).toInt().coerceAtLeast(dpToPx(36))
+        val safeDayCount = dayCount.coerceAtLeast(1)
+        val dayColumnWidth = ((availableWidth - timeColumnWidth) / safeDayCount.toFloat())
+            .toInt()
+            .coerceAtLeast(dpToPx(36))
         val columnGap = dpToPx(2)
         return GridMetrics(timeColumnWidth, dayColumnWidth, columnGap, innerPadding)
     }
@@ -652,28 +1229,33 @@ class MainActivity : AppCompatActivity() {
     private fun setupRepository() {
         val database = AppDatabase.getInstance(this)
         repository = CourseRepository(database.courseDao())
-        settingsRepository = SettingsRepository(database.settingsDao())
+        settingsRepository = SettingsRepository(database.settingsDao(), database.semesterDao())
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 settingsRepository.ensureDefaults()
             }
-            repository.coursesFlow.collect { courses ->
-                courseList.clear()
-                courseList.addAll(courses)
-                requestRender()
-                val reminderConfig = reminderSettings
-                if (reminderConfig != null && periodTimes.isNotEmpty()) {
-                    withContext(Dispatchers.Default) {
-                        reminderScheduler.scheduleUpcomingReminders(
-                            courses = courseList,
-                            periodTimes = periodTimes,
-                            semesterStartDate = semesterStartDate,
-                            reminderSettings = reminderConfig,
-                            typeReminders = typeReminders
-                        )
+            settingsRepository.currentSemesterId
+                .flatMapLatest { semesterId ->
+                    currentSemesterId = semesterId
+                    repository.observeCourses(semesterId)
+                }
+                .collect { courses ->
+                    courseList.clear()
+                    courseList.addAll(courses)
+                    requestRender()
+                    val reminderConfig = reminderSettings
+                    if (reminderConfig != null && periodTimes.isNotEmpty()) {
+                        withContext(Dispatchers.Default) {
+                            reminderScheduler.scheduleUpcomingReminders(
+                                courses = courseList,
+                                periodTimes = periodTimes,
+                                semesterStartDate = semesterStartDate,
+                                reminderSettings = reminderConfig,
+                                typeReminders = typeReminders
+                            )
+                        }
                     }
                 }
-            }
         }
 
         lifecycleScope.launch {
@@ -681,12 +1263,14 @@ class MainActivity : AppCompatActivity() {
                 settingsRepository.periodTimes,
                 settingsRepository.reminderSettings,
                 settingsRepository.courseTypeReminders,
-                settingsRepository.observeSemesterStartDate()
-            ) { periods, reminder, types, semester ->
+                settingsRepository.observeSemesterStartDate(),
+                settingsRepository.currentSemesterId
+            ) { periods, reminder, types, semester, semesterId ->
                 periodTimes = periods
                 reminderSettings = reminder
                 typeReminders = types
                 semesterStartDate = semester ?: LocalDate.now()
+                currentSemesterId = semesterId
                 currentWeek = getCurrentWeek()
                 requestRender()
                 reminder
@@ -701,6 +1285,12 @@ class MainActivity : AppCompatActivity() {
                         typeReminders = typeReminders
                     )
                 }
+            }
+        }
+
+        lifecycleScope.launch {
+            settingsRepository.semesters.collect { items ->
+                semesters = items
             }
         }
     }
@@ -723,11 +1313,18 @@ class MainActivity : AppCompatActivity() {
         result = 31 * result + courseList.hashCode()
         result = 31 * result + periodTimes.hashCode()
         result = 31 * result + semesterStartDate.hashCode()
+        result = 31 * result + viewMode.ordinal
+        result = 31 * result + selectedDayOfWeek
+        result = 31 * result + currentSemesterId.hashCode()
         return result
     }
 
     private fun showAddCourseDialog() {
-        val dialog = AddEditCourseDialog(this, null) { course, callback ->
+        if (currentSemesterId <= 0L) {
+            Toast.makeText(this, "当前学期未就绪，稍后重试", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val dialog = AddEditCourseDialog(this, null, currentSemesterId) { course, callback ->
             lifecycleScope.launch {
                 val result = repository.addCourse(course)
                 withContext(Dispatchers.Main) {
@@ -746,7 +1343,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showEditCourseDialog(course: Course) {
-        val dialog = AddEditCourseDialog(this, course) { updated, callback ->
+        val dialog = AddEditCourseDialog(this, course, currentSemesterId) { updated, callback ->
             lifecycleScope.launch {
                 val result = repository.updateCourse(updated)
                 withContext(Dispatchers.Main) {

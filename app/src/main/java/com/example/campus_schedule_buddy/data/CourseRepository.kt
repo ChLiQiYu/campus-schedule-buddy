@@ -10,7 +10,7 @@ class CourseRepository(private val courseDao: CourseDao) {
         data class Error(val message: String) : SaveResult()
     }
 
-    val coursesFlow: Flow<List<Course>> = courseDao.observeCourses()
+    fun observeCourses(semesterId: Long): Flow<List<Course>> = courseDao.observeCourses(semesterId)
 
     suspend fun addCourse(course: Course): SaveResult {
         val validation = validateCourse(course)
@@ -45,12 +45,12 @@ class CourseRepository(private val courseDao: CourseDao) {
         courseDao.delete(course)
     }
 
-    suspend fun replaceAll(courses: List<Course>) {
-        courseDao.replaceAll(courses)
+    suspend fun replaceAll(semesterId: Long, courses: List<Course>) {
+        courseDao.replaceAll(semesterId, courses)
     }
 
     private suspend fun findConflict(course: Course): String? {
-        val existingCourses = courseDao.getAllCourses()
+        val existingCourses = courseDao.getAllCourses(course.semesterId)
         val conflictCourse = existingCourses.firstOrNull { existing ->
             if (existing.id == course.id) return@firstOrNull false
             if (existing.dayOfWeek != course.dayOfWeek) return@firstOrNull false
@@ -66,6 +66,9 @@ class CourseRepository(private val courseDao: CourseDao) {
     }
 
     private fun validateCourse(course: Course): String? {
+        if (course.semesterId <= 0) {
+            return "学期信息无效"
+        }
         if (course.name.isBlank()) {
             return "课程名称不能为空"
         }
