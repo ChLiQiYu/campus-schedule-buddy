@@ -82,17 +82,36 @@
 
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/btn_settings"
+        <LinearLayout
+            android:id="@+id/layout_actions"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_gravity="end"
             android:layout_marginEnd="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="设置"
-            android:padding="8dp"
-            android:src="@drawable/ic_settings"
-            app:tint="@android:color/white" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_import"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="导入"
+                android:padding="8dp"
+                android:src="@drawable/ic_import"
+                app:tint="@android:color/white" />
+
+            <ImageButton
+                android:id="@+id/btn_settings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="设置"
+                android:padding="8dp"
+                android:src="@drawable/ic_settings"
+                app:tint="@android:color/white" />
+        </LinearLayout>
 
     </com.google.android.material.appbar.MaterialToolbar>
 

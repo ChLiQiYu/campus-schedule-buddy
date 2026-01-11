@@ -45,6 +45,10 @@ class CourseRepository(private val courseDao: CourseDao) {
         courseDao.delete(course)
     }
 
+    suspend fun replaceAll(courses: List<Course>) {
+        courseDao.replaceAll(courses)
+    }
+
     private suspend fun findConflict(course: Course): String? {
         val existingCourses = courseDao.getAllCourses()
         val conflictCourse = existingCourses.firstOrNull { existing ->
