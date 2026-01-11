@@ -20,13 +20,15 @@ class BootReceiver : BroadcastReceiver() {
                 val database = AppDatabase.getInstance(context)
                 val courseDao = database.courseDao()
                 val settingsDao = database.settingsDao()
-                val settingsRepository = SettingsRepository(settingsDao)
+                val semesterDao = database.semesterDao()
+                val settingsRepository = SettingsRepository(settingsDao, semesterDao)
                 settingsRepository.ensureDefaults()
-                val courses = courseDao.getAllCourses()
-                val periodTimes = settingsDao.getPeriodTimes()
-                val reminderSettings = settingsDao.getReminderSettings() ?: return@launch
-                val typeReminders = settingsDao.getCourseTypeReminders()
-                val semester = settingsDao.getSemesterSettings()
+                val currentSemesterId = settingsDao.getAppSettings()?.currentSemesterId ?: return@launch
+                val courses = courseDao.getAllCourses(currentSemesterId)
+                val periodTimes = settingsDao.getPeriodTimes(currentSemesterId)
+                val reminderSettings = settingsDao.getReminderSettings(currentSemesterId) ?: return@launch
+                val typeReminders = settingsDao.getCourseTypeReminders(currentSemesterId)
+                val semester = semesterDao.getSemester(currentSemesterId)
                 val semesterStart = semester?.startDate?.let {
                     LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE)
                 } ?: LocalDate.now()

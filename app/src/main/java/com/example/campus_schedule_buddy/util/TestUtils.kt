@@ -14,6 +14,7 @@ object TestUtils {
         return listOf(
             Course(
                 id = 1L,
+                semesterId = 1L,
                 name = "高等数学",
                 teacher = "张教授",
                 location = "教学楼A-301",
@@ -25,6 +26,7 @@ object TestUtils {
             ),
             Course(
                 id = 2L,
+                semesterId = 1L,
                 name = "大学英语",
                 teacher = "李老师",
                 location = "外语楼-205",
@@ -36,6 +38,7 @@ object TestUtils {
             ),
             Course(
                 id = 3L,
+                semesterId = 1L,
                 name = "数据结构",
                 teacher = "王教授",
                 location = "计算机楼-401",

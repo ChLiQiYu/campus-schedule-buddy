@@ -1,11 +1,9 @@
 package com.example.campus_schedule_buddy.data
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
-
-@Entity(tableName = "course_type_reminders")
+@Entity(tableName = "course_type_reminders", primaryKeys = ["semesterId", "type"])
 data class CourseTypeReminderEntity(
-    @PrimaryKey
+    val semesterId: Long,
     val type: String,
     val leadMinutes: Int,
     val enabled: Boolean

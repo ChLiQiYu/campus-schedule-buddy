@@ -80,7 +80,8 @@ class SettingsActivity : AppCompatActivity() {
         reminderVibrateSwitch = findViewById(R.id.switch_reminder_vibrate)
         defaultLeadSpinner = findViewById(R.id.spinner_default_lead)
 
-        val repository = SettingsRepository(AppDatabase.getInstance(this).settingsDao())
+        val database = AppDatabase.getInstance(this)
+        val repository = SettingsRepository(database.settingsDao(), database.semesterDao())
         viewModel = ViewModelProvider(this, SettingsViewModelFactory(repository))[SettingsViewModel::class.java]
         viewModel.ensureDefaults()
 
@@ -294,27 +295,27 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun default45Template(): List<PeriodTimeEntity> {
         return listOf(
-            PeriodTimeEntity(1, "08:00", "08:45"),
-            PeriodTimeEntity(2, "08:55", "09:40"),
-            PeriodTimeEntity(3, "10:00", "10:45"),
-            PeriodTimeEntity(4, "10:55", "11:40"),
-            PeriodTimeEntity(5, "14:00", "14:45"),
-            PeriodTimeEntity(6, "14:55", "15:40"),
-            PeriodTimeEntity(7, "16:00", "16:45"),
-            PeriodTimeEntity(8, "16:55", "17:40")
+            PeriodTimeEntity(0, 1, "08:00", "08:45"),
+            PeriodTimeEntity(0, 2, "08:55", "09:40"),
+            PeriodTimeEntity(0, 3, "10:00", "10:45"),
+            PeriodTimeEntity(0, 4, "10:55", "11:40"),
+            PeriodTimeEntity(0, 5, "14:00", "14:45"),
+            PeriodTimeEntity(0, 6, "14:55", "15:40"),
+            PeriodTimeEntity(0, 7, "16:00", "16:45"),
+            PeriodTimeEntity(0, 8, "16:55", "17:40")
         )
     }
 
     private fun default90Template(): List<PeriodTimeEntity> {
         return listOf(
-            PeriodTimeEntity(1, "08:00", "08:45"),
-            PeriodTimeEntity(2, "08:45", "09:30"),
-            PeriodTimeEntity(3, "09:50", "10:35"),
-            PeriodTimeEntity(4, "10:35", "11:20"),
-            PeriodTimeEntity(5, "14:00", "14:45"),
-            PeriodTimeEntity(6, "14:45", "15:30"),
-            PeriodTimeEntity(7, "15:50", "16:35"),
-            PeriodTimeEntity(8, "16:35", "17:20")
+            PeriodTimeEntity(0, 1, "08:00", "08:45"),
+            PeriodTimeEntity(0, 2, "08:45", "09:30"),
+            PeriodTimeEntity(0, 3, "09:50", "10:35"),
+            PeriodTimeEntity(0, 4, "10:35", "11:20"),
+            PeriodTimeEntity(0, 5, "14:00", "14:45"),
+            PeriodTimeEntity(0, 6, "14:45", "15:30"),
+            PeriodTimeEntity(0, 7, "15:50", "16:35"),
+            PeriodTimeEntity(0, 8, "16:35", "17:20")
         )
     }
 
