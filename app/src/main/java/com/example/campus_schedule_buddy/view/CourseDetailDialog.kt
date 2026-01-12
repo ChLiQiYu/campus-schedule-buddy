@@ -17,7 +17,8 @@ class CourseDetailDialog(
     context: Context,
     private val course: Course,
     private val onEdit: (Course) -> Unit,
-    private val onDelete: (Course) -> Unit
+    private val onDelete: (Course) -> Unit,
+    private val onKnowledge: (Course) -> Unit
 ) : Dialog(context) {
     private var isDismissing = false
 
@@ -57,6 +58,7 @@ class CourseDetailDialog(
         val editButton = findViewById<Button>(R.id.btn_edit)
         val deleteButton = findViewById<Button>(R.id.btn_delete)
         val cancelButton = findViewById<Button>(R.id.btn_cancel)
+        val knowledgeButton = findViewById<Button>(R.id.btn_knowledge)
 
         // 设置课程信息
         courseNameTextView.text = course.name
@@ -129,6 +131,12 @@ class CourseDetailDialog(
             // 添加按钮点击动画效果
             addButtonClickEffect(cancelButton)
             dismiss()
+        }
+
+        knowledgeButton.setOnClickListener {
+            addButtonClickEffect(knowledgeButton)
+            dismiss()
+            onKnowledge(course)
         }
         
         // 添加弹窗显示动画

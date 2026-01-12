@@ -1281,9 +1281,18 @@ class MainActivity : AppCompatActivity() {
             this,
             course,
             onEdit = { selected -> showEditCourseDialog(selected) },
-            onDelete = { selected -> deleteCourse(selected) }
+            onDelete = { selected -> deleteCourse(selected) },
+            onKnowledge = { selected -> openKnowledgeInventory(selected) }
         )
         dialog.show()
+    }
+
+    private fun openKnowledgeInventory(course: Course) {
+        val intent = Intent(this, KnowledgeInventoryActivity::class.java).apply {
+            putExtra(KnowledgeInventoryActivity.EXTRA_COURSE_ID, course.id)
+            putExtra(KnowledgeInventoryActivity.EXTRA_COURSE_NAME, course.name)
+        }
+        startActivity(intent)
     }
 
     private fun showCourseWorkspaceDialog(course: Course) {

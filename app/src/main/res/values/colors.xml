@@ -51,4 +51,11 @@
     <color name="card_border_current">#FFFFFFFF</color>
     <color name="grid_line">#1F000000</color>
     <color name="grid_line_dark">#33FFFFFF</color>
+
+    <!-- 知识清单状态色 -->
+    <color name="knowledge_not_started">#FF9AA0A6</color>
+    <color name="knowledge_learning">#FF6B8FD6</color>
+    <color name="knowledge_mastered">#FF6FAF9A</color>
+    <color name="knowledge_stuck">#FFD08A6C</color>
+    <color name="knowledge_keypoint">#FF8B7DB7</color>
 </resources>

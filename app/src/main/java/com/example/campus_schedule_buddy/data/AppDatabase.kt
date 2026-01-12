@@ -19,9 +19,10 @@ import com.example.campus_schedule_buddy.model.Course
         CourseNoteEntity::class,
         GroupSyncSessionEntity::class,
         GroupSyncShareEntity::class,
-        RhythmSettingsEntity::class
+        RhythmSettingsEntity::class,
+        KnowledgePointEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -31,6 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun semesterDao(): SemesterDao
     abstract fun workspaceDao(): CourseWorkspaceDao
     abstract fun groupSyncDao(): GroupSyncDao
+    abstract fun knowledgePointDao(): KnowledgePointDao
 
     companion object {
         @Volatile
@@ -47,7 +49,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_2_3,
                     MIGRATION_3_4,
                     MIGRATION_4_5,
-                    MIGRATION_5_6
+                    MIGRATION_5_6,
+                    MIGRATION_6_7
                 )
                     .build()
                     .also { instance = it }
@@ -299,6 +302,36 @@ private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
             """
             CREATE INDEX IF NOT EXISTS index_course_attachments_semesterId_dueAt
             ON course_attachments (semesterId, dueAt)
+            """.trimIndent()
+        )
+    }
+}
+
+private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS knowledge_points (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                courseId INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                masteryLevel INTEGER NOT NULL,
+                isKeyPoint INTEGER NOT NULL,
+                lastReviewedAt INTEGER,
+                FOREIGN KEY(courseId) REFERENCES courses(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_knowledge_points_courseId
+            ON knowledge_points (courseId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_knowledge_points_courseId_masteryLevel
+            ON knowledge_points (courseId, masteryLevel)
             """.trimIndent()
         )
     }

@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/knowledge_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?android:attr/colorBackground">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_knowledge"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="?attr/colorPrimary"
+        android:contentInsetStartWithNavigation="0dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        app:navigationIconTint="?attr/colorOnPrimary"
+        app:title="知识清单"
+        app:titleTextColor="?attr/colorOnPrimary" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/progress_ring"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:indeterminate="false"
+                    android:max="100"
+                    app:indicatorSize="56dp"
+                    app:trackThickness="6dp"
+                    app:trackColor="?attr/colorSurfaceVariant" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_progress_percent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/tv_progress_summary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="未开始 0 · 学习中 0 · 已掌握 0"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/input_search"
+            style="?attr/textInputOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="搜索知识点">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_filter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_filter_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="全部"
+                android:textColor="@color/knowledge_filter_chip_text"
+                app:checkedIconVisible="false"
+                app:chipBackgroundColor="@color/knowledge_filter_chip_bg"
+                app:chipStrokeColor="@color/knowledge_filter_chip_stroke"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_filter_not_started"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="未开始"
+                android:textColor="@color/knowledge_filter_chip_text"
+                app:checkedIconVisible="false"
+                app:chipBackgroundColor="@color/knowledge_filter_chip_bg"
+                app:chipStrokeColor="@color/knowledge_filter_chip_stroke"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_filter_learning"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="学习中"
+                android:textColor="@color/knowledge_filter_chip_text"
+                app:checkedIconVisible="false"
+                app:chipBackgroundColor="@color/knowledge_filter_chip_bg"
+                app:chipStrokeColor="@color/knowledge_filter_chip_stroke"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_filter_mastered"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="已掌握"
+                android:textColor="@color/knowledge_filter_chip_text"
+                app:checkedIconVisible="false"
+                app:chipBackgroundColor="@color/knowledge_filter_chip_bg"
+                app:chipStrokeColor="@color/knowledge_filter_chip_stroke"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_filter_stuck"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="模糊"
+                android:textColor="@color/knowledge_filter_chip_text"
+                app:checkedIconVisible="false"
+                app:chipBackgroundColor="@color/knowledge_filter_chip_bg"
+                app:chipStrokeColor="@color/knowledge_filter_chip_stroke"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_filter_key"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="重难点"
+                android:textColor="@color/knowledge_filter_chip_text"
+                app:checkedIconVisible="false"
+                app:chipBackgroundColor="@color/knowledge_filter_chip_bg"
+                app:chipStrokeColor="@color/knowledge_filter_chip_stroke"
+                app:chipStrokeWidth="1dp" />
+        </com.google.android.material.chip.ChipGroup>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_add_point"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="新增知识点" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_batch_add"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="批量添加" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:padding="16dp"
+        android:text="暂无知识点，点击上方按钮添加"
+        android:textColor="?android:attr/textColorSecondary"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_knowledge"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="16dp"
+        android:clipToPadding="false" />
+
+</LinearLayout>

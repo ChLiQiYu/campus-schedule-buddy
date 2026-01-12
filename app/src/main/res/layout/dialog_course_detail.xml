@@ -122,10 +122,20 @@
         android:textSize="16sp"
         android:textColor="?android:attr/textColorSecondary" />
 
+    <Button
+        android:id="@+id/btn_knowledge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="知识清单"
+        style="@style/Widget.MaterialComponents.Button"
+        android:padding="12dp"
+        android:elevation="6dp" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:orientation="horizontal">
 
         <Button

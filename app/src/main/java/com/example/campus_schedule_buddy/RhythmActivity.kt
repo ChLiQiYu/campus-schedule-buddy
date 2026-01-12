@@ -1,9 +1,12 @@
 package com.example.campus_schedule_buddy
 
 import android.app.NotificationManager
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Build
 import android.provider.Settings
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -18,6 +21,7 @@ import com.example.campus_schedule_buddy.data.SettingsRepository
 import com.example.campus_schedule_buddy.focus.FocusModeReceiver
 import com.example.campus_schedule_buddy.focus.FocusModeScheduler
 import com.example.campus_schedule_buddy.model.WorkloadDay
+import com.example.campus_schedule_buddy.widget.ProgressBeaconWidgetProvider
 import com.example.campus_schedule_buddy.viewmodel.RhythmViewModel
 import com.example.campus_schedule_buddy.viewmodel.RhythmViewModelFactory
 import com.google.android.material.appbar.MaterialToolbar
@@ -38,6 +42,7 @@ class RhythmActivity : AppCompatActivity() {
     private lateinit var autoFocusSwitch: SwitchMaterial
     private lateinit var dndStatusLabel: TextView
     private lateinit var requestDndButton: MaterialButton
+    private lateinit var addWidgetButton: MaterialButton
 
     private var currentSemesterId: Long = 0L
     private var periodTimes: List<PeriodTimeEntity> = emptyList()
@@ -107,6 +112,7 @@ class RhythmActivity : AppCompatActivity() {
         autoFocusSwitch = findViewById(R.id.switch_auto_focus)
         dndStatusLabel = findViewById(R.id.tv_dnd_status)
         requestDndButton = findViewById(R.id.btn_request_dnd)
+        addWidgetButton = findViewById(R.id.btn_add_widget)
     }
 
     private fun bindViewModel() {
@@ -143,6 +149,10 @@ class RhythmActivity : AppCompatActivity() {
 
         requestDndButton.setOnClickListener {
             openDndSettings()
+        }
+
+        addWidgetButton.setOnClickListener {
+            requestPinWidget()
         }
     }
 
@@ -214,6 +224,23 @@ class RhythmActivity : AppCompatActivity() {
 
     private fun openDndSettings() {
         startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+    }
+
+    private fun requestPinWidget() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Toast.makeText(this, "请长按桌面添加“小组件”并选择学业节律", Toast.LENGTH_LONG).show()
+            return
+        }
+        val appWidgetManager = getSystemService(AppWidgetManager::class.java)
+        if (appWidgetManager == null || !appWidgetManager.isRequestPinAppWidgetSupported) {
+            Toast.makeText(this, "当前启动器不支持一键添加，请手动添加小组件", Toast.LENGTH_LONG).show()
+            return
+        }
+        val provider = ComponentName(this, ProgressBeaconWidgetProvider::class.java)
+        val requested = appWidgetManager.requestPinAppWidget(provider, null, null)
+        if (!requested) {
+            Toast.makeText(this, "无法添加小组件，请稍后重试", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun formatWeekday(dayIndex: Int): String {

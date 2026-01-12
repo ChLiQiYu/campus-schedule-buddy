@@ -44,6 +44,10 @@
             android:name=".RhythmActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".KnowledgeInventoryActivity"
+            android:exported="false" />
+
         <receiver
             android:name=".reminder.ReminderReceiver"
             android:exported="false" />
