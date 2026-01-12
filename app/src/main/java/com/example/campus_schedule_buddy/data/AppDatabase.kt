@@ -16,9 +16,11 @@ import com.example.campus_schedule_buddy.model.Course
         ReminderSettingsEntity::class,
         CourseTypeReminderEntity::class,
         CourseAttachmentEntity::class,
-        CourseNoteEntity::class
+        CourseNoteEntity::class,
+        GroupSyncSessionEntity::class,
+        GroupSyncShareEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -27,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun semesterDao(): SemesterDao
     abstract fun workspaceDao(): CourseWorkspaceDao
+    abstract fun groupSyncDao(): GroupSyncDao
 
     companion object {
         @Volatile
@@ -38,7 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "campus_schedule.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { instance = it }
             }
@@ -224,6 +227,52 @@ private val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
             """
             CREATE INDEX IF NOT EXISTS index_course_notes_semesterId_courseId
             ON course_notes (semesterId, courseId)
+            """.trimIndent()
+        )
+    }
+}
+
+private val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS group_sync_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                code TEXT NOT NULL,
+                semesterId INTEGER NOT NULL,
+                totalWeeks INTEGER NOT NULL,
+                periodCount INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS index_group_sync_sessions_code
+            ON group_sync_sessions (code)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS group_sync_shares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                sessionId INTEGER NOT NULL,
+                memberName TEXT NOT NULL,
+                freeSlots TEXT NOT NULL,
+                createdAt INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_group_sync_shares_sessionId
+            ON group_sync_shares (sessionId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS index_group_sync_shares_sessionId_memberName
+            ON group_sync_shares (sessionId, memberName)
             """.trimIndent()
         )
     }

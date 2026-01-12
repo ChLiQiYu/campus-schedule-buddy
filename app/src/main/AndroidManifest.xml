@@ -35,6 +35,10 @@
             android:name=".SettingsActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".GroupSyncActivity"
+            android:exported="false" />
+
         <receiver
             android:name=".reminder.ReminderReceiver"
             android:exported="false" />

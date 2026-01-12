@@ -547,6 +547,7 @@ class MainActivity : AppCompatActivity() {
         val addSemesterButton = sheetView.findViewById<ImageButton>(R.id.btn_add_semester_sheet)
         val importButton = sheetView.findViewById<Button>(R.id.btn_import_sheet)
         val exportButton = sheetView.findViewById<Button>(R.id.btn_export_sheet)
+        val groupSyncButton = sheetView.findViewById<Button>(R.id.btn_group_sync_sheet)
         val settingsButton = sheetView.findViewById<Button>(R.id.btn_open_settings_sheet)
 
         val checkedId = when (viewMode) {
@@ -619,6 +620,11 @@ class MainActivity : AppCompatActivity() {
         exportButton.setOnClickListener {
             dialog.dismiss()
             launchExportPicker()
+        }
+
+        groupSyncButton.setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, GroupSyncActivity::class.java))
         }
 
         settingsButton.setOnClickListener {

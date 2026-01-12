@@ -107,6 +107,13 @@
         android:text="导出课表" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_group_sync_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="隐私组队" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_open_settings_sheet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
