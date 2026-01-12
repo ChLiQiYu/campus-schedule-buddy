@@ -6,7 +6,10 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "course_attachments",
-    indices = [Index(value = ["semesterId", "courseId"])]
+    indices = [
+        Index(value = ["semesterId", "courseId"]),
+        Index(value = ["semesterId", "dueAt"])
+    ]
 )
 data class CourseAttachmentEntity(
     @PrimaryKey(autoGenerate = true)

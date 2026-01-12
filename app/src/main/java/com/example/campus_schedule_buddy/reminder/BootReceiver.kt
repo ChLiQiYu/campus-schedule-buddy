@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.example.campus_schedule_buddy.data.AppDatabase
 import com.example.campus_schedule_buddy.data.SettingsRepository
+import com.example.campus_schedule_buddy.focus.FocusModeScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,6 +41,16 @@ class BootReceiver : BroadcastReceiver() {
                     reminderSettings,
                     typeReminders
                 )
+                val rhythmSettings = settingsDao.getRhythmSettings()
+                if (rhythmSettings?.autoFocusEnabled == true) {
+                    val focusScheduler = FocusModeScheduler(context)
+                    focusScheduler.scheduleUpcomingFocus(
+                        courses,
+                        periodTimes,
+                        semesterStart,
+                        true
+                    )
+                }
             } finally {
                 pendingResult.finish()
             }

@@ -43,4 +43,13 @@ interface SettingsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertCourseTypeReminders(items: List<CourseTypeReminderEntity>)
+
+    @Query("SELECT * FROM rhythm_settings LIMIT 1")
+    fun observeRhythmSettings(): Flow<RhythmSettingsEntity?>
+
+    @Query("SELECT * FROM rhythm_settings LIMIT 1")
+    suspend fun getRhythmSettings(): RhythmSettingsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertRhythmSettings(settings: RhythmSettingsEntity)
 }

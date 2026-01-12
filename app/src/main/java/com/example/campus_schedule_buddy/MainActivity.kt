@@ -548,6 +548,7 @@ class MainActivity : AppCompatActivity() {
         val importButton = sheetView.findViewById<Button>(R.id.btn_import_sheet)
         val exportButton = sheetView.findViewById<Button>(R.id.btn_export_sheet)
         val groupSyncButton = sheetView.findViewById<Button>(R.id.btn_group_sync_sheet)
+        val rhythmButton = sheetView.findViewById<Button>(R.id.btn_rhythm_sheet)
         val settingsButton = sheetView.findViewById<Button>(R.id.btn_open_settings_sheet)
 
         val checkedId = when (viewMode) {
@@ -625,6 +626,11 @@ class MainActivity : AppCompatActivity() {
         groupSyncButton.setOnClickListener {
             dialog.dismiss()
             startActivity(Intent(this, GroupSyncActivity::class.java))
+        }
+
+        rhythmButton.setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, RhythmActivity::class.java))
         }
 
         settingsButton.setOnClickListener {

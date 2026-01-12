@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <!-- Android 14 (API 34) 及更高版本需要 -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"
         tools:ignore="ExactAlarmPolicy" />
@@ -39,6 +40,10 @@
             android:name=".GroupSyncActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".RhythmActivity"
+            android:exported="false" />
+
         <receiver
             android:name=".reminder.ReminderReceiver"
             android:exported="false" />
@@ -49,6 +54,21 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".focus.FocusModeReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.ProgressBeaconWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/progress_beacon_widget_info" />
         </receiver>
     </application>
 

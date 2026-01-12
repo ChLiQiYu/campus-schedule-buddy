@@ -35,6 +35,18 @@ interface CourseWorkspaceDao {
     suspend fun deleteNote(entity: CourseNoteEntity)
 
     @Query(
+        "SELECT * FROM course_attachments " +
+            "WHERE semesterId = :semesterId AND type = :type AND dueAt IS NOT NULL"
+    )
+    fun observeTaskAttachments(semesterId: Long, type: String): Flow<List<CourseAttachmentEntity>>
+
+    @Query(
+        "SELECT * FROM course_attachments " +
+            "WHERE semesterId = :semesterId AND type = :type AND dueAt IS NOT NULL"
+    )
+    suspend fun getTaskAttachments(semesterId: Long, type: String): List<CourseAttachmentEntity>
+
+    @Query(
         """
         SELECT courses.id AS courseId,
                COALESCE(attachment_counts.cnt, 0) AS attachmentCount,

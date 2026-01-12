@@ -114,6 +114,13 @@
         android:text="隐私组队" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_rhythm_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="学业节律" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_open_settings_sheet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

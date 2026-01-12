@@ -18,9 +18,10 @@ import com.example.campus_schedule_buddy.model.Course
         CourseAttachmentEntity::class,
         CourseNoteEntity::class,
         GroupSyncSessionEntity::class,
-        GroupSyncShareEntity::class
+        GroupSyncShareEntity::class,
+        RhythmSettingsEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -41,7 +42,13 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "campus_schedule.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6
+                )
                     .build()
                     .also { instance = it }
             }
@@ -273,6 +280,25 @@ private val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
             """
             CREATE UNIQUE INDEX IF NOT EXISTS index_group_sync_shares_sessionId_memberName
             ON group_sync_shares (sessionId, memberName)
+            """.trimIndent()
+        )
+    }
+}
+
+private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS rhythm_settings (
+                id INTEGER NOT NULL PRIMARY KEY,
+                autoFocusEnabled INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_course_attachments_semesterId_dueAt
+            ON course_attachments (semesterId, dueAt)
             """.trimIndent()
         )
     }

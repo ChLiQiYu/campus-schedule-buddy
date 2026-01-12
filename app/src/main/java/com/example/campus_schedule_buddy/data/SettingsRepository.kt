@@ -15,6 +15,8 @@ class SettingsRepository(
 
     val semesters: Flow<List<SemesterEntity>> = semesterDao.observeSemesters()
     val appSettings: Flow<AppSettingsEntity?> = settingsDao.observeAppSettings()
+    val rhythmSettings: Flow<RhythmSettingsEntity?> = settingsDao.observeRhythmSettings()
+    val autoFocusEnabled: Flow<Boolean> = rhythmSettings.map { it?.autoFocusEnabled ?: false }
 
     val currentSemesterId: Flow<Long> = combine(semesters, appSettings) { items, settings ->
         val fallbackId = items.firstOrNull()?.id ?: 0L
@@ -69,6 +71,9 @@ class SettingsRepository(
         if (appSettings == null) {
             settingsDao.upsertAppSettings(AppSettingsEntity(currentSemesterId = currentSemesterId))
         }
+        if (settingsDao.getRhythmSettings() == null) {
+            settingsDao.upsertRhythmSettings(RhythmSettingsEntity(autoFocusEnabled = false))
+        }
         ensureSemesterDefaults(resolveCurrentSemesterId())
     }
 
@@ -91,6 +96,10 @@ class SettingsRepository(
     suspend fun updateCourseTypeReminders(items: List<CourseTypeReminderEntity>) {
         val semesterId = resolveCurrentSemesterId()
         settingsDao.upsertCourseTypeReminders(items.map { it.copy(semesterId = semesterId) })
+    }
+
+    suspend fun setAutoFocusEnabled(enabled: Boolean) {
+        settingsDao.upsertRhythmSettings(RhythmSettingsEntity(autoFocusEnabled = enabled))
     }
 
     fun observeSemesterStartDate(): Flow<LocalDate?> {
