@@ -45,6 +45,14 @@
             android:exported="false" />
 
         <activity
+            android:name=".LearningHubActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ProfileCenterActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".KnowledgeInventoryActivity"
             android:exported="false" />
 

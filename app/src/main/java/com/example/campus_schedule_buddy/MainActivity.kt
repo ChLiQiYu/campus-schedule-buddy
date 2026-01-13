@@ -293,10 +293,19 @@ class MainActivity : AppCompatActivity() {
 
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.navigation_profile -> true
+                R.id.navigation_schedule -> true
+                R.id.navigation_partners -> {
+                    startActivity(Intent(this, LearningHubActivity::class.java))
+                    true
+                }
+                R.id.navigation_profile -> {
+                    startActivity(Intent(this, ProfileCenterActivity::class.java))
+                    true
+                }
                 else -> true
             }
         }
+        bottomNavigation.selectedItemId = R.id.navigation_schedule
     }
 
     private fun updateWeekDisplay() {
