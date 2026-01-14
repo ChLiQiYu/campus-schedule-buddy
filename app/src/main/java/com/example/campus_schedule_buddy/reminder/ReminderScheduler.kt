@@ -30,7 +30,8 @@ class ReminderScheduler(private val context: Context) {
         if (!reminderSettings.enableNotification) {
             return
         }
-        val periodMap = periodTimes.associate { it.period to it.startTime }
+        val startTimeMap = periodTimes.associate { it.period to it.startTime }
+        val endTimeMap = periodTimes.associate { it.period to it.endTime }
         val typeMap = typeReminders.associateBy { it.type }
         val formatter = DateTimeFormatter.ofPattern("HH:mm")
         val now = LocalDateTime.now()
@@ -44,14 +45,23 @@ class ReminderScheduler(private val context: Context) {
             courses.filter { course ->
                 course.dayOfWeek == dayOfWeek && course.weekPattern.contains(weekNumber)
             }.forEach { course ->
-                val startTimeText = periodMap[course.startPeriod] ?: return@forEach
+                val startTimeText = startTimeMap[course.startPeriod] ?: return@forEach
                 val startTime = LocalTime.parse(startTimeText, formatter)
                 val leadMinutes = resolveLeadMinutes(course, reminderSettings, typeMap) ?: return@forEach
                 val triggerTime = LocalDateTime.of(date, startTime).minusMinutes(leadMinutes.toLong())
                 if (triggerTime.isAfter(now)) {
-                    val requestCode = buildRequestCode(course.id, date, course.startPeriod)
-                    scheduleReminder(course, triggerTime, requestCode, reminderSettings)
+                    val requestCode = buildRequestCode(course.id, date, course.startPeriod, 1)
+                    scheduleReminder(course, triggerTime, requestCode, reminderSettings, ReminderReceiver.TYPE_BEFORE_CLASS)
                     scheduledCodes.add(requestCode.toString())
+                }
+
+                val endTimeText = endTimeMap[course.endPeriod] ?: return@forEach
+                val endTime = LocalTime.parse(endTimeText, formatter)
+                val afterClassTime = LocalDateTime.of(date, endTime).plusMinutes(AFTER_CLASS_DELAY_MINUTES)
+                if (afterClassTime.isAfter(now)) {
+                    val afterCode = buildRequestCode(course.id, date, course.startPeriod, 2)
+                    scheduleReminder(course, afterClassTime, afterCode, reminderSettings, ReminderReceiver.TYPE_AFTER_CLASS)
+                    scheduledCodes.add(afterCode.toString())
                 }
             }
             date = date.plusDays(1)
@@ -64,7 +74,8 @@ class ReminderScheduler(private val context: Context) {
         course: Course,
         triggerTime: LocalDateTime,
         requestCode: Int,
-        reminderSettings: ReminderSettingsEntity
+        reminderSettings: ReminderSettingsEntity,
+        reminderType: String
     ) {
         val intent = Intent(context, ReminderReceiver::class.java).apply {
             putExtra(ReminderReceiver.EXTRA_COURSE_ID, course.id)
@@ -75,6 +86,7 @@ class ReminderScheduler(private val context: Context) {
             putExtra(ReminderReceiver.EXTRA_START_PERIOD, course.startPeriod)
             putExtra(ReminderReceiver.EXTRA_END_PERIOD, course.endPeriod)
             putExtra(ReminderReceiver.EXTRA_ENABLE_VIBRATE, reminderSettings.enableVibrate)
+            putExtra(ReminderReceiver.EXTRA_REMINDER_TYPE, reminderType)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -120,12 +132,15 @@ class ReminderScheduler(private val context: Context) {
         return (daysDiff / 7).toInt() + 1
     }
 
-    private fun buildRequestCode(courseId: Long, date: LocalDate, startPeriod: Int): Int {
+    private fun buildRequestCode(courseId: Long, date: LocalDate, startPeriod: Int, suffix: Int): Int {
         val dateValue = date.toString().replace("-", "").toIntOrNull() ?: 0
-        return (courseId.toInt() * 100000) + (dateValue % 100000) + startPeriod
+        val coursePart = (courseId % 10000).toInt()
+        val base = coursePart * 100000 + (dateValue % 100000)
+        return base * 100 + (startPeriod * 2) + suffix
     }
 
     companion object {
         private const val KEY_REQUEST_CODES = "scheduled_codes"
+        private const val AFTER_CLASS_DELAY_MINUTES = 5L
     }
 }

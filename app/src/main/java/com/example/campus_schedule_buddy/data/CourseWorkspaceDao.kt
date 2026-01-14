@@ -25,6 +25,12 @@ interface CourseWorkspaceDao {
     @Insert
     suspend fun insertAttachment(entity: CourseAttachmentEntity): Long
 
+    @Query(
+        "SELECT COUNT(*) FROM course_attachments " +
+            "WHERE uri = :uri AND sourceType = :sourceType"
+    )
+    suspend fun countAttachmentsByUri(uri: String, sourceType: String): Int
+
     @Insert
     suspend fun insertNote(entity: CourseNoteEntity): Long
 

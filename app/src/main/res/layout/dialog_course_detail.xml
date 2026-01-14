@@ -36,91 +36,135 @@
 
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_teacher"
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tab_course_detail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="教师姓名"
-        android:textSize="18sp"
-        android:textStyle="normal"
-        android:textColor="?attr/textColorPrimary" />
+        android:layout_marginTop="12dp">
 
-    <TextView
-        android:id="@+id/tv_location"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="上课地点"
-        android:textSize="16sp"
-        android:textColor="?android:attr/textColorSecondary" />
+        <com.google.android.material.tabs.TabItem
+            android:text="详情" />
 
-    <TextView
-        android:id="@+id/tv_time"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="上课时间"
-        android:textSize="16sp"
-        android:textColor="?android:attr/textColorSecondary" />
-
-    <TextView
-        android:id="@+id/tv_week_pattern"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="周数模式"
-        android:textSize="16sp"
-        android:textColor="?android:attr/textColorSecondary" />
+        <com.google.android.material.tabs.TabItem
+            android:text="媒体流" />
+    </com.google.android.material.tabs.TabLayout>
 
     <LinearLayout
+        android:id="@+id/layout_detail_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:orientation="vertical">
 
         <TextView
-            android:id="@+id/tv_color_label"
-            android:layout_width="wrap_content"
+            android:id="@+id/tv_teacher"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="颜色:"
+            android:layout_marginTop="16dp"
+            android:text="教师姓名"
+            android:textSize="18sp"
+            android:textStyle="normal"
+            android:textColor="?attr/textColorPrimary" />
+
+        <TextView
+            android:id="@+id/tv_location"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="上课地点"
+            android:textSize="16sp"
+            android:textColor="?android:attr/textColorSecondary" />
+
+        <TextView
+            android:id="@+id/tv_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="上课时间"
+            android:textSize="16sp"
+            android:textColor="?android:attr/textColorSecondary" />
+
+        <TextView
+            android:id="@+id/tv_week_pattern"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="周数模式"
+            android:textSize="16sp"
+            android:textColor="?android:attr/textColorSecondary" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_color_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="颜色:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <TextView
+                android:id="@+id/tv_color_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="按类型自动"
+                android:textSize="14sp"
+                android:textColor="@color/white" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_note_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="备注:"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="?android:attr/textColorPrimary" />
+            android:textColor="?attr/textColorPrimary" />
 
         <TextView
-            android:id="@+id/tv_color_value"
-            android:layout_width="wrap_content"
+            android:id="@+id/tv_note"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:text="按类型自动"
-            android:textSize="14sp"
-            android:textColor="@color/white" />
+            android:layout_marginTop="8dp"
+            android:text="备注内容"
+            android:textSize="16sp"
+            android:textColor="?android:attr/textColorSecondary" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_note_label"
+    <LinearLayout
+        android:id="@+id/layout_media_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="备注:"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="?attr/textColorPrimary" />
+        android:layout_marginTop="12dp"
+        android:orientation="vertical"
+        android:visibility="gone">
 
-    <TextView
-        android:id="@+id/tv_note"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="备注内容"
-        android:textSize="16sp"
-        android:textColor="?android:attr/textColorSecondary" />
+        <TextView
+            android:id="@+id/tv_media_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="暂无媒体记录"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/container_media_items"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </LinearLayout>
 
     <Button
         android:id="@+id/btn_knowledge"

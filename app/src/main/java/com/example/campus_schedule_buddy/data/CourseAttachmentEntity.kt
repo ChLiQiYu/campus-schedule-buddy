@@ -21,11 +21,15 @@ data class CourseAttachmentEntity(
     val uri: String? = null,
     val url: String? = null,
     val dueAt: Long? = null,
+    val sourceType: String = SOURCE_MANUAL,
     val createdAt: Long
 ) {
     companion object {
         const val TYPE_PDF = "pdf"
         const val TYPE_LINK = "link"
         const val TYPE_TASK = "task"
+        const val TYPE_MEDIA = "media"
+        const val SOURCE_MANUAL = "MANUAL"
+        const val SOURCE_CHRONICLE_MEDIA = "CHRONICLE_MEDIA"
     }
 }

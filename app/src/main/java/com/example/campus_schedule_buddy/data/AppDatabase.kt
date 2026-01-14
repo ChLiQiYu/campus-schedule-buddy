@@ -22,7 +22,7 @@ import com.example.campus_schedule_buddy.model.Course
         RhythmSettingsEntity::class,
         KnowledgePointEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -50,7 +50,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_3_4,
                     MIGRATION_4_5,
                     MIGRATION_5_6,
-                    MIGRATION_6_7
+                    MIGRATION_6_7,
+                    MIGRATION_7_8
                 )
                     .build()
                     .also { instance = it }
@@ -332,6 +333,17 @@ private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
             """
             CREATE INDEX IF NOT EXISTS index_knowledge_points_courseId_masteryLevel
             ON knowledge_points (courseId, masteryLevel)
+            """.trimIndent()
+        )
+    }
+}
+
+private val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            ALTER TABLE course_attachments
+            ADD COLUMN sourceType TEXT NOT NULL DEFAULT '${CourseAttachmentEntity.SOURCE_MANUAL}'
             """.trimIndent()
         )
     }

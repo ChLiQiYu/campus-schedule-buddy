@@ -38,6 +38,16 @@ class CourseCardView @JvmOverloads constructor(
         color = Color.WHITE
         textAlign = Paint.Align.RIGHT
     }
+    private val recordTextPaint = Paint().apply {
+        isAntiAlias = true
+        textSize = dpToPx(9).toFloat()
+        color = Color.WHITE
+        textAlign = Paint.Align.RIGHT
+    }
+    private val recordDotPaint = Paint().apply {
+        isAntiAlias = true
+        color = Color.parseColor("#FF4D4F")
+    }
 
     init {
         orientation = VERTICAL
@@ -263,13 +273,23 @@ class CourseCardView @JvmOverloads constructor(
     
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        
+
         // 如果是跨节课程，绘制跨节数指示器
         if (spanCount > 1) {
             val text = "x$spanCount"
             val xPos = width - paddingRight - dpToPx(4)
             val yPos = height - paddingBottom - dpToPx(4)
             canvas.drawText(text, xPos.toFloat(), yPos.toFloat(), spanIndicatorPaint)
+        }
+
+        if (isCurrentCourse) {
+            val dotRadius = dpToPx(3)
+            val dotX = width - paddingRight - dpToPx(6)
+            val dotY = paddingTop + dpToPx(6)
+            canvas.drawCircle(dotX.toFloat(), dotY.toFloat(), dotRadius.toFloat(), recordDotPaint)
+            val textX = dotX - dpToPx(10)
+            val textY = dotY + dpToPx(3)
+            canvas.drawText("REC", textX.toFloat(), textY.toFloat(), recordTextPaint)
         }
     }
     
@@ -296,6 +316,7 @@ class CourseCardView @JvmOverloads constructor(
                 .setDuration(140)
                 .start()
         }
+        invalidate()
     }
 
     fun setWorkspaceCounts(attachmentCount: Int, noteCount: Int) {

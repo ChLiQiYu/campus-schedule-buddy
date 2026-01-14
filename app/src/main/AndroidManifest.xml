@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!-- Android 14 (API 34) 及更高版本需要 -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"
         tools:ignore="ExactAlarmPolicy" />
@@ -56,8 +59,16 @@
             android:name=".KnowledgeInventoryActivity"
             android:exported="false" />
 
+        <service
+            android:name=".media.MediaObserverService"
+            android:exported="false" />
+
         <receiver
             android:name=".reminder.ReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".media.MediaQuickLinkReceiver"
             android:exported="false" />
 
         <receiver

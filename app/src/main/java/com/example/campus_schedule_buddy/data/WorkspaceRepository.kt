@@ -19,6 +19,10 @@ class WorkspaceRepository(private val workspaceDao: CourseWorkspaceDao) {
         return workspaceDao.insertAttachment(entity)
     }
 
+    suspend fun hasAttachmentUri(uri: String, sourceType: String): Boolean {
+        return workspaceDao.countAttachmentsByUri(uri, sourceType) > 0
+    }
+
     suspend fun addNote(entity: CourseNoteEntity): Long {
         return workspaceDao.insertNote(entity)
     }

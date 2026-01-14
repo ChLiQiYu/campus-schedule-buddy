@@ -3,22 +3,32 @@ package com.example.campus_schedule_buddy.view
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
+import android.content.Intent
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.view.Window
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.example.campus_schedule_buddy.R
+import com.example.campus_schedule_buddy.data.CourseAttachmentEntity
 import com.example.campus_schedule_buddy.model.Course
+import com.google.android.material.tabs.TabLayout
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class CourseDetailDialog(
     context: Context,
     private val course: Course,
     private val onEdit: (Course) -> Unit,
     private val onDelete: (Course) -> Unit,
-    private val onKnowledge: (Course) -> Unit
+    private val onKnowledge: (Course) -> Unit,
+    private val mediaAttachments: List<CourseAttachmentEntity>
 ) : Dialog(context) {
     private var isDismissing = false
 
@@ -59,6 +69,11 @@ class CourseDetailDialog(
         val deleteButton = findViewById<Button>(R.id.btn_delete)
         val cancelButton = findViewById<Button>(R.id.btn_cancel)
         val knowledgeButton = findViewById<Button>(R.id.btn_knowledge)
+        val tabLayout = findViewById<TabLayout>(R.id.tab_course_detail)
+        val detailContent = findViewById<View>(R.id.layout_detail_content)
+        val mediaContent = findViewById<View>(R.id.layout_media_content)
+        val mediaContainer = findViewById<LinearLayout>(R.id.container_media_items)
+        val mediaEmpty = findViewById<TextView>(R.id.tv_media_empty)
 
         // 设置课程信息
         courseNameTextView.text = course.name
@@ -111,6 +126,8 @@ class CourseDetailDialog(
             noteTextView.text = course.note
         }
 
+        renderMediaItems(mediaContainer, mediaEmpty)
+
         // 设置按钮点击事件
         editButton.setOnClickListener {
             // 添加按钮点击动画效果
@@ -138,6 +155,18 @@ class CourseDetailDialog(
             dismiss()
             onKnowledge(course)
         }
+
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                val showMedia = tab.position == 1
+                detailContent.visibility = if (showMedia) View.GONE else View.VISIBLE
+                mediaContent.visibility = if (showMedia) View.VISIBLE else View.GONE
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
         
         // 添加弹窗显示动画
         addDialogShowAnimation()
@@ -248,6 +277,43 @@ class CourseDetailDialog(
                 context.getColor(R.color.course_pe) to "天蓝"
             )
             Pair(mapping[color] ?: "自定义", color)
+        }
+    }
+
+    private fun renderMediaItems(container: LinearLayout, emptyView: TextView) {
+        container.removeAllViews()
+        if (mediaAttachments.isEmpty()) {
+            emptyView.visibility = View.VISIBLE
+            return
+        }
+        emptyView.visibility = View.GONE
+        val formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
+        mediaAttachments.sortedByDescending { it.createdAt }.forEach { attachment ->
+            val itemView = LayoutInflater.from(context).inflate(R.layout.item_course_media, container, false)
+            val titleView = itemView.findViewById<TextView>(R.id.tv_media_title)
+            val timeView = itemView.findViewById<TextView>(R.id.tv_media_time)
+            titleView.text = attachment.title
+            val timeText = Instant.ofEpochMilli(attachment.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .format(formatter)
+            timeView.text = timeText
+            itemView.setOnClickListener { openMediaAttachment(attachment) }
+            container.addView(itemView)
+        }
+    }
+
+    private fun openMediaAttachment(attachment: CourseAttachmentEntity) {
+        val uriString = attachment.uri ?: return
+        val uri = Uri.parse(uriString)
+        val mimeType = context.contentResolver.getType(uri) ?: "image/*"
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mimeType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            // Ignore if no handler.
         }
     }
     
