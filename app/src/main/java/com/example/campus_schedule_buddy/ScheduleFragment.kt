@@ -343,7 +343,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     private fun renderMonthView(week: Int) {
         val weekStart = getWeekStartDate(week)
-        val monthStart = weekStart.withDayOfMonth(1)
+        val anchorDate = weekStart.plusDays(3)
+        val monthStart = anchorDate.withDayOfMonth(1)
         val monthEnd = monthStart.plusMonths(1).minusDays(1)
         val listContainer = LinearLayout(requireContext()).apply {
             layoutParams = LinearLayout.LayoutParams(
@@ -755,8 +756,9 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     private fun changeMonthBy(delta: Int) {
         val weekStart = getWeekStartDate(currentWeek)
-        val monthStart = weekStart.withDayOfMonth(1)
-        val targetMonthStart = monthStart.plusMonths(delta.toLong())
+        val anchorDate = weekStart.plusDays(3)
+        val monthStart = anchorDate.withDayOfMonth(1)
+        val targetMonthStart = monthStart.plusMonths(delta.toLong()).plusDays(3)
         val weekIndex = getWeekIndexForDate(targetMonthStart)
         if (weekIndex !in 1..totalWeeks) return
         if (weekIndex == currentWeek) return
@@ -793,17 +795,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             
             val courseCard = CourseCardView(requireContext()).apply {
                 setCourse(course)
-                setIsSpanning(span)
                 tag = course
-                val counts = workspaceCounts[course.id]
-                setWorkspaceCounts(
-                    counts?.attachmentCount ?: 0,
-                    counts?.noteCount ?: 0
-                )
-                setOnWorkspaceClickListener {
-                    showCourseWorkspaceDialog(course)
-                }
-                
+
                 layoutParams = FrameLayout.LayoutParams(cardWidth, cardHeight).apply {
                     leftMargin = cardLeft
                     topMargin = cardTop
@@ -1270,26 +1263,27 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     }
 
     private fun showCourseDetailDialog(course: Course) {
-        lifecycleScope.launch {
-            val mediaAttachments = if (::workspaceRepository.isInitialized) {
-                withContext(Dispatchers.IO) {
-                    workspaceRepository.getAttachments(course.semesterId, course.id)
-                        .filter { it.sourceType == CourseAttachmentEntity.SOURCE_CHRONICLE_MEDIA }
-                }
-            } else {
-                emptyList()
-            }
-            val dialog = CourseDetailDialog(
-                requireContext(),
-                course,
-                onEdit = { selected -> showEditCourseDialog(selected) },
-                onDelete = { selected -> deleteCourse(selected) },
-                onKnowledge = { selected -> openKnowledgeInventory(selected) },
-                mediaAttachments = mediaAttachments
-            )
-            dialog.show()
-        }
+        val dialog = CourseDetailDialog(
+            requireContext(),
+            course,
+            onEdit = { selected -> showEditCourseDialog(selected) },
+            onDelete = { selected -> deleteCourse(selected) },
+            onKnowledge = { selected -> openKnowledgeInventory(selected) },
+            onWorkspace = { selected -> showCourseWorkspaceDialog(selected) }
+        )
+        dialog.show()
     }
+    private var pendingMediaPermissionAction: (() -> Unit)? = null
+    private val mediaPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            val granted = results.values.any { it }
+            if (granted) {
+                pendingMediaPermissionAction?.invoke()
+            } else {
+                showMediaPermissionSettingsGuide()
+            }
+            pendingMediaPermissionAction = null
+        }
 
     private fun openKnowledgeInventory(course: Course) {
         val intent = Intent(requireContext(), KnowledgeInventoryActivity::class.java).apply {
@@ -1308,14 +1302,18 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_course_workspace, null)
         val titleView = sheetView.findViewById<TextView>(R.id.tv_workspace_title)
         val subtitleView = sheetView.findViewById<TextView>(R.id.tv_workspace_subtitle)
+        val tabLayout = sheetView.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tab_workspace)
         val attachmentsContainer = sheetView.findViewById<LinearLayout>(R.id.container_attachments)
+        val mediaContainer = sheetView.findViewById<LinearLayout>(R.id.container_media)
+        val mediaEmpty = sheetView.findViewById<TextView>(R.id.tv_media_empty)
+        val attachmentActions = sheetView.findViewById<LinearLayout>(R.id.layout_attachment_actions)
         val notesContainer = sheetView.findViewById<LinearLayout>(R.id.container_notes)
         val addPdfButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_pdf)
         val addLinkButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_link)
         val addTaskButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_task)
         val addNoteButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_note)
 
-        titleView.text = "${course.name} 工作区"
+        titleView.text = "${course.name} 课程资料"
         subtitleView.text = "${formatWeekday(course.dayOfWeek)} 第${course.startPeriod}-${course.endPeriod}节"
 
         fun refreshWorkspace() {
@@ -1326,7 +1324,21 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 val notes = withContext(Dispatchers.IO) {
                     workspaceRepository.getNotes(course.semesterId, course.id)
                 }
-                renderWorkspaceAttachments(attachmentsContainer, attachments)
+                val mediaItems = if (hasMediaPermission()) {
+                    attachments.filter {
+                        it.sourceType == CourseAttachmentEntity.SOURCE_CHRONICLE_MEDIA ||
+                            it.type == CourseAttachmentEntity.TYPE_MEDIA
+                    }
+                } else {
+                    mediaEmpty.text = "需要访问相册权限来关联课堂拍摄的照片与录音"
+                    emptyList()
+                }
+                val manualItems = attachments.filterNot {
+                    it.sourceType == CourseAttachmentEntity.SOURCE_CHRONICLE_MEDIA ||
+                        it.type == CourseAttachmentEntity.TYPE_MEDIA
+                }
+                renderWorkspaceAttachments(attachmentsContainer, manualItems)
+                renderWorkspaceMedia(mediaContainer, mediaEmpty, mediaItems)
                 renderWorkspaceNotes(notesContainer, notes)
             }
         }
@@ -1341,6 +1353,42 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         }
 
         refreshWorkspace()
+
+        fun showAttachmentsTab() {
+            attachmentsContainer.visibility = View.VISIBLE
+            mediaContainer.visibility = View.GONE
+            attachmentActions.visibility = View.VISIBLE
+        }
+
+        fun showMediaTab() {
+            attachmentsContainer.visibility = View.GONE
+            mediaContainer.visibility = View.VISIBLE
+            attachmentActions.visibility = View.GONE
+            if (!hasMediaPermission()) {
+                mediaEmpty.text = "需要访问相册权限来关联课堂拍摄的照片与录音"
+                mediaEmpty.visibility = View.VISIBLE
+                requestMediaPermission { refreshWorkspace() }
+            }
+        }
+
+        tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab) {
+                if (tab.position == 1) {
+                    showMediaTab()
+                } else {
+                    showAttachmentsTab()
+                }
+            }
+
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab) = Unit
+
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab) {
+                if (tab.position == 1 && !hasMediaPermission()) {
+                    requestMediaPermission { refreshWorkspace() }
+                }
+            }
+        })
+        showAttachmentsTab()
 
         addPdfButton.setOnClickListener {
             pendingAttachmentCourse = course
@@ -1383,6 +1431,32 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 confirmDeleteAttachment(attachment)
                 true
             }
+            container.addView(itemView)
+        }
+    }
+
+    private fun renderWorkspaceMedia(
+        container: LinearLayout,
+        emptyView: TextView,
+        mediaItems: List<CourseAttachmentEntity>
+    ) {
+        container.removeAllViews()
+        if (mediaItems.isEmpty()) {
+            emptyView.visibility = View.VISIBLE
+            if (emptyView.text.isNullOrBlank()) {
+                emptyView.text = "暂无媒体记录"
+            }
+            container.addView(emptyView)
+            return
+        }
+        emptyView.visibility = View.GONE
+        mediaItems.sortedByDescending { it.createdAt }.forEach { attachment ->
+            val itemView = layoutInflater.inflate(R.layout.item_course_media, container, false)
+            val titleView = itemView.findViewById<TextView>(R.id.tv_media_title)
+            val timeView = itemView.findViewById<TextView>(R.id.tv_media_time)
+            titleView.text = attachment.title
+            timeView.text = formatTimestamp(attachment.createdAt)
+            itemView.setOnClickListener { openAttachment(attachment) }
             container.addView(itemView)
         }
     }
@@ -1973,6 +2047,74 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 )
             }
         }
+    }
+
+    private fun hasMediaPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val imagesGranted = ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.READ_MEDIA_IMAGES
+            ) == PackageManager.PERMISSION_GRANTED
+            val audioGranted = ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.READ_MEDIA_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+            imagesGranted || audioGranted
+        } else {
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestMediaPermission(onGranted: () -> Unit) {
+        if (hasMediaPermission()) {
+            onGranted()
+            return
+        }
+        pendingMediaPermissionAction = onGranted
+        showMediaPermissionRationale {
+            mediaPermissionLauncher.launch(mediaPermissions())
+        }
+    }
+
+    private fun mediaPermissions(): Array<String> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_AUDIO
+            )
+        } else {
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+    }
+
+    private fun showMediaPermissionRationale(onProceed: () -> Unit) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("需要媒体访问权限")
+            .setMessage("需要访问相册权限来关联课堂拍摄的照片与录音")
+            .setPositiveButton("授权") { _, _ -> onProceed() }
+            .setNegativeButton("取消") { _, _ ->
+                showMediaPermissionSettingsGuide()
+            }
+            .show()
+    }
+
+    private fun showMediaPermissionSettingsGuide() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("未获得媒体权限")
+            .setMessage("可在系统设置中手动开启相册/媒体权限，以使用媒体流功能。")
+            .setPositiveButton("去设置") { _, _ -> openAppSettings() }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", requireContext().packageName, null)
+        }
+        startActivity(intent)
     }
 
     companion object {

@@ -28,16 +28,8 @@ class CourseCardView @JvmOverloads constructor(
     private val teacherTextView: ChineseOptimizedTextView
     private val locationTextView: ChineseOptimizedTextView
     private val periodTextView: ChineseOptimizedTextView
-    private val workspaceTextView: AppCompatTextView
-    private var spanCount = 1
     private var backgroundDrawable: GradientDrawable? = null
     private var isCurrentCourse = false
-    private val spanIndicatorPaint = Paint().apply {
-        isAntiAlias = true
-        textSize = dpToPx(10).toFloat()
-        color = Color.WHITE
-        textAlign = Paint.Align.RIGHT
-    }
     private val recordTextPaint = Paint().apply {
         isAntiAlias = true
         textSize = dpToPx(9).toFloat()
@@ -60,35 +52,25 @@ class CourseCardView @JvmOverloads constructor(
         // 设置初始背景
         setBackgroundResource(android.R.color.transparent)
 
-        // 优化课程名称显示 - 每行3个中文，最多3行
+        // 优化课程名称显示 - 每行3个中文，最多4行
         courseNameTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(11f, true, 3, 5) // 11sp, 加粗, 每行3中文, 最多5行
+            setupForChineseText(8.0f, true, 3, 4)
         }
 
-        // 优化教师姓名显示 - 每行3个中文，最多1行
+        // 优化教师姓名显示 - 每行3个中文，最多2行
         teacherTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(9f, false, 3, 4) // 9sp, 不加粗, 每行3中文, 最多4行
+            setupForChineseText(8.0f, false, 3, 2)
         }
 
-        // 优化地点信息显示 - 每行3个中文，最多1行
+        // 优化地点信息显示 - 每行3个中文，最多2行
         locationTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(9f, false, 3, 4) // 9sp, 不加粗, 每行3中文, 最多4行
+            setupForChineseText(8.5f, false, 3, 2)
         }
 
-        // 优化节次和周数信息显示 - 每行3个中文，最多2行
+        // 保留节次信息的占位（不显示）
         periodTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(8f, false, 3, 3) // 8sp, 不加粗, 每行3中文, 最多3行
-            // 确保文本在视图中垂直居下对齐
-            gravity = Gravity.BOTTOM or Gravity.END
-        }
-
-        workspaceTextView = AppCompatTextView(context).apply {
-            textSize = 8f
-            setSingleLine(true)
-            ellipsize = TextUtils.TruncateAt.END
-            text = "资料 0 · 笔记 0"
-            gravity = Gravity.START
-            setPadding(0, dpToPx(2), 0, 0)
+            setupForChineseText(8f, false, 3, 1)
+            visibility = View.GONE
         }
 
         // 添加子视图
@@ -96,15 +78,13 @@ class CourseCardView @JvmOverloads constructor(
         addView(teacherTextView)
         addView(locationTextView)
         addView(periodTextView)
-        addView(workspaceTextView)
 
         // 为所有TextView设置自适应高度的布局参数，使其高度能根据实际内容自动调整
         val textViewList = listOf(
             courseNameTextView,
             teacherTextView,
             locationTextView,
-            periodTextView,
-            workspaceTextView
+            periodTextView
         )
         
         textViewList.forEach { textView ->
@@ -154,24 +134,11 @@ class CourseCardView @JvmOverloads constructor(
         // 优化地点信息显示
         locationTextView.text = course.location ?: ""
 
-        // 格式化周数显示，确保在有限空间内完整显示
-        val weekText = if (course.weekPattern.size > 1) {
-            "第${course.weekPattern.first()}-${course.weekPattern.last()}周"
-        } else {
-            "第${course.weekPattern.first()}周"
-        }
-
-        // 优化节次和周数信息显示
-        periodTextView.text = "${course.startPeriod}-${course.endPeriod}节 · $weekText"
-
         // 设置背景颜色
         setBackgroundColorByCourse(course)
 
         // 根据系统主题更新文字颜色
         updateTextColors()
-
-        // 重置工作区计数
-        setWorkspaceCounts(0, 0)
 
         // 重新测量文本，确保正确显示
         post { requestLayout() }
@@ -201,7 +168,6 @@ class CourseCardView @JvmOverloads constructor(
         teacherTextView.setTextColor(secondaryTextColor)
         locationTextView.setTextColor(secondaryTextColor)
         periodTextView.setTextColor(secondaryTextColor)
-        workspaceTextView.setTextColor(secondaryTextColor)
     }
     /**
      * 设置背景颜色
@@ -256,15 +222,6 @@ class CourseCardView @JvmOverloads constructor(
         }, delay)
     }
         
-    /**
-     * 设置课程卡片是否为跨越多个节次的卡片
-     * @param spanCount 跨越的节次数
-     */
-    fun setIsSpanning(spanCount: Int) {
-        this.spanCount = spanCount
-        // 如果是跨越多个节次的卡片，可以在这里添加特殊的样式处理
-    }
-
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         // 重新测量文本
@@ -273,14 +230,6 @@ class CourseCardView @JvmOverloads constructor(
     
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
-        // 如果是跨节课程，绘制跨节数指示器
-        if (spanCount > 1) {
-            val text = "x$spanCount"
-            val xPos = width - paddingRight - dpToPx(4)
-            val yPos = height - paddingBottom - dpToPx(4)
-            canvas.drawText(text, xPos.toFloat(), yPos.toFloat(), spanIndicatorPaint)
-        }
 
         if (isCurrentCourse) {
             val dotRadius = dpToPx(3)
@@ -319,15 +268,6 @@ class CourseCardView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun setWorkspaceCounts(attachmentCount: Int, noteCount: Int) {
-        workspaceTextView.text = "资料 $attachmentCount · 笔记 $noteCount"
-    }
-
-    fun setOnWorkspaceClickListener(listener: View.OnClickListener?) {
-        workspaceTextView.setOnClickListener(listener)
-        workspaceTextView.isClickable = listener != null
-        workspaceTextView.isFocusable = listener != null
-    }
 }
 
 /**
@@ -429,27 +369,8 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
             }
         }
 
-        // 调用父类的测量方法
+        // 调用父类的测量方法，保留多行文本高度
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        
-        // 确保高度正确计算，特别是对于数字和字母
-        val fontMetrics = paint.fontMetrics
-        val textHeight = fontMetrics.bottom - fontMetrics.top
-        val desiredHeight = (textHeight + paddingTop + paddingBottom).toInt()
-        
-        // 获取测量模式
-        val heightMode = MeasureSpec.getMode(heightMeasureSpec)
-        val heightSize = MeasureSpec.getSize(heightMeasureSpec)
-        
-        val measuredHeight = when (heightMode) {
-            MeasureSpec.EXACTLY -> heightSize // 精确模式，使用指定大小
-            MeasureSpec.AT_MOST -> minOf(desiredHeight, heightSize) // 最大模式，取较小值
-            MeasureSpec.UNSPECIFIED -> desiredHeight // 未指定模式，使用计算值
-            else -> desiredHeight
-        }
-        
-        // 设置测量尺寸
-        setMeasuredDimension(measuredWidth, measuredHeight)
     }
 
     override fun onTextChanged(text: CharSequence?, start: Int, lengthBefore: Int, lengthAfter: Int) {

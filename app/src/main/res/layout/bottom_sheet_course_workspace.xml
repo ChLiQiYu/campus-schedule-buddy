@@ -15,7 +15,7 @@
             android:id="@+id/tv_workspace_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="课程工作区"
+            android:text="课程资料"
             android:textColor="?android:attr/textColorPrimary"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -29,12 +29,18 @@
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp" />
 
-        <TextView
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tab_workspace"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="附件"
-            android:textColor="?android:attr/textColorSecondary" />
+            android:layout_marginTop="16dp">
+
+            <com.google.android.material.tabs.TabItem
+                android:text="附件" />
+
+            <com.google.android.material.tabs.TabItem
+                android:text="媒体" />
+        </com.google.android.material.tabs.TabLayout>
 
         <LinearLayout
             android:id="@+id/container_attachments"
@@ -44,6 +50,25 @@
             android:orientation="vertical" />
 
         <LinearLayout
+            android:id="@+id/container_media"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_media_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="暂无媒体记录"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_attachment_actions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
