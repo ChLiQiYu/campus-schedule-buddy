@@ -43,6 +43,7 @@
                     android:id="@+id/et_course_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:padding="12dp"
                     android:hint="课程名称" />
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -112,6 +113,7 @@
                     android:id="@+id/et_teacher"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:padding="12dp"
                     android:hint="教师姓名" />
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -125,6 +127,7 @@
                     android:id="@+id/et_location"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:padding="12dp"
                     android:hint="上课地点" />
 
             </com.google.android.material.textfield.TextInputLayout>

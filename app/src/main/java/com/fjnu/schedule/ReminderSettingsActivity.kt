@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
@@ -18,6 +19,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.CourseTypeReminderEntity
 import com.fjnu.schedule.data.SettingsRepository
 import com.fjnu.schedule.viewmodel.SettingsViewModel
 import com.fjnu.schedule.viewmodel.SettingsViewModelFactory
@@ -32,9 +34,19 @@ class ReminderSettingsActivity : AppCompatActivity() {
     private lateinit var permissionHint: TextView
     private lateinit var btnNotification: Button
     private lateinit var btnExactAlarm: Button
+    private lateinit var typeReminderContainer: LinearLayout
 
     private val leadOptions = listOf(5, 10, 15, 20, 30)
     private var isUpdatingUi = false
+    private var isUpdatingTypeUi = false
+    private val typeLabelMap = mapOf(
+        "major_required" to "专业必修",
+        "major_elective" to "专业选修",
+        "public_required" to "公共必修",
+        "public_elective" to "公共选修",
+        "experiment" to "实验/实践",
+        "pe" to "体育/艺术"
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +77,7 @@ class ReminderSettingsActivity : AppCompatActivity() {
         permissionHint = findViewById(R.id.tv_permission_hint)
         btnNotification = findViewById(R.id.btn_request_notification)
         btnExactAlarm = findViewById(R.id.btn_request_exact_alarm)
+        typeReminderContainer = findViewById(R.id.container_type_reminders)
 
         val database = AppDatabase.getInstance(this)
         val repository = SettingsRepository(database.settingsDao(), database.semesterDao())
@@ -90,6 +103,16 @@ class ReminderSettingsActivity : AppCompatActivity() {
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         leadSpinner.adapter = adapter
+    }
+
+    private fun setupLeadSpinner(spinner: Spinner) {
+        val adapter = android.widget.ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            leadOptions.map { "${it}分钟" }
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
     }
 
     private fun setupListeners() {
@@ -136,6 +159,56 @@ class ReminderSettingsActivity : AppCompatActivity() {
 
                     override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
                 }
+        }
+
+        viewModel.typeReminders.observe(this) { items ->
+            renderTypeReminders(items)
+        }
+    }
+
+    private fun renderTypeReminders(items: List<CourseTypeReminderEntity>) {
+        typeReminderContainer.removeAllViews()
+        if (items.isEmpty()) return
+        isUpdatingTypeUi = true
+        items.forEach { item ->
+            val row = layoutInflater.inflate(R.layout.item_type_reminder, typeReminderContainer, false)
+            val label = row.findViewById<TextView>(R.id.tv_type_label)
+            val leadSpinner = row.findViewById<Spinner>(R.id.spinner_type_lead)
+            val enableSwitch = row.findViewById<Switch>(R.id.switch_type_enable)
+            label.text = typeLabelMap[item.type] ?: item.type
+            setupLeadSpinner(leadSpinner)
+            leadSpinner.setSelection(leadOptions.indexOf(item.leadMinutes).coerceAtLeast(0))
+            enableSwitch.isChecked = item.enabled
+
+            enableSwitch.setOnCheckedChangeListener { _, isChecked ->
+                if (isUpdatingTypeUi) return@setOnCheckedChangeListener
+                updateTypeReminder(item, item.leadMinutes, isChecked)
+            }
+            leadSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: android.widget.AdapterView<*>?,
+                    view: android.view.View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    if (isUpdatingTypeUi) return
+                    updateTypeReminder(item, leadOptions[position], enableSwitch.isChecked)
+                }
+
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+            }
+            typeReminderContainer.addView(row)
+        }
+        isUpdatingTypeUi = false
+    }
+
+    private fun updateTypeReminder(item: CourseTypeReminderEntity, leadMinutes: Int, enabled: Boolean) {
+        val updated = item.copy(leadMinutes = leadMinutes, enabled = enabled)
+        val current = viewModel.typeReminders.value?.toMutableList() ?: mutableListOf()
+        val index = current.indexOfFirst { it.type == item.type }
+        if (index >= 0) {
+            current[index] = updated
+            viewModel.updateTypeReminders(current)
         }
     }
 

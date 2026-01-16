@@ -3,23 +3,18 @@ package com.fjnu.schedule
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.Spinner
-import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import com.fjnu.schedule.data.AppDatabase
-import com.fjnu.schedule.data.CourseTypeReminderEntity
 import com.fjnu.schedule.data.PeriodTimeEntity
 import com.fjnu.schedule.data.ScheduleSettingsEntity
 import com.fjnu.schedule.data.SettingsRepository
@@ -36,10 +31,6 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var semesterDateText: TextView
     private lateinit var periodContainer: LinearLayout
-    private lateinit var typeReminderContainer: LinearLayout
-    private lateinit var reminderEnableSwitch: Switch
-    private lateinit var reminderVibrateSwitch: Switch
-    private lateinit var defaultLeadSpinner: Spinner
     private lateinit var etPeriodCount: EditText
     private lateinit var etPeriodMinutes: EditText
     private lateinit var etBreakMinutes: EditText
@@ -47,17 +38,6 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var btnApplyScheduleSettings: Button
     private lateinit var btnOpenReminderSettings: Button
 
-    private val leadOptions = listOf(5, 10, 15, 20, 30)
-    private val typeLabelMap = mapOf(
-        "major_required" to "专业必修",
-        "major_elective" to "专业选修",
-        "public_required" to "公共必修",
-        "public_elective" to "公共选修",
-        "experiment" to "实验/实践",
-        "pe" to "体育/艺术"
-    )
-    private var isUpdatingReminderUi = false
-    private var isUpdatingTypeUi = false
     private var latestPeriodTimes: List<PeriodTimeEntity> = emptyList()
     private var latestScheduleSettings: ScheduleSettingsEntity? = null
     private var currentSemesterId: Long = 0L
@@ -87,10 +67,6 @@ class SettingsActivity : AppCompatActivity() {
 
         semesterDateText = findViewById(R.id.tv_semester_date)
         periodContainer = findViewById(R.id.container_period_times)
-        typeReminderContainer = findViewById(R.id.container_type_reminders)
-        reminderEnableSwitch = findViewById(R.id.switch_reminder_enable)
-        reminderVibrateSwitch = findViewById(R.id.switch_reminder_vibrate)
-        defaultLeadSpinner = findViewById(R.id.spinner_default_lead)
         etPeriodCount = findViewById(R.id.et_period_count)
         etPeriodMinutes = findViewById(R.id.et_period_minutes)
         etBreakMinutes = findViewById(R.id.et_break_minutes)
@@ -103,7 +79,6 @@ class SettingsActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this, SettingsViewModelFactory(repository))[SettingsViewModel::class.java]
         viewModel.ensureDefaults()
 
-        setupLeadSpinner(defaultLeadSpinner)
         setupTemplateButtons()
         setupSemesterDatePicker()
         setupScheduleSettings()
@@ -111,16 +86,6 @@ class SettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, ReminderSettingsActivity::class.java))
         }
         observeSettings()
-    }
-
-    private fun setupLeadSpinner(spinner: Spinner) {
-        val adapter = android.widget.ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            leadOptions.map { "${it}分钟" }
-        )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
     }
 
     private fun setupTemplateButtons() {
@@ -220,47 +185,6 @@ class SettingsActivity : AppCompatActivity() {
             etTotalWeeks.setText(settings.totalWeeks.toString())
         }
 
-        viewModel.reminderSettings.observe(this) { settings ->
-            if (settings == null) return@observe
-            isUpdatingReminderUi = true
-            reminderEnableSwitch.isChecked = settings.enableNotification
-            reminderVibrateSwitch.isChecked = settings.enableVibrate
-            val index = leadOptions.indexOf(settings.leadMinutes).coerceAtLeast(0)
-            defaultLeadSpinner.setSelection(index)
-            isUpdatingReminderUi = false
-            reminderEnableSwitch.setOnCheckedChangeListener { _, isChecked ->
-                if (isUpdatingReminderUi) return@setOnCheckedChangeListener
-                handleNotificationPermission(isChecked)
-                viewModel.updateReminderSettings(
-                    settings.copy(enableNotification = isChecked)
-                )
-            }
-            reminderVibrateSwitch.setOnCheckedChangeListener { _, isChecked ->
-                if (isUpdatingReminderUi) return@setOnCheckedChangeListener
-                viewModel.updateReminderSettings(
-                    settings.copy(enableVibrate = isChecked)
-                )
-            }
-            defaultLeadSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: android.widget.AdapterView<*>?,
-                    view: android.view.View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    if (isUpdatingReminderUi) return
-                    viewModel.updateReminderSettings(
-                        settings.copy(leadMinutes = leadOptions[position])
-                    )
-                }
-
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-            }
-        }
-
-        viewModel.typeReminders.observe(this) { items ->
-            renderTypeReminders(items)
-        }
     }
 
     private fun renderPeriodTimes(times: List<PeriodTimeEntity>) {
@@ -319,52 +243,6 @@ class SettingsActivity : AppCompatActivity() {
         viewModel.updatePeriodTimes(updated)
     }
 
-    private fun renderTypeReminders(items: List<CourseTypeReminderEntity>) {
-        typeReminderContainer.removeAllViews()
-        if (items.isEmpty()) return
-        isUpdatingTypeUi = true
-        items.forEach { item ->
-            val row = layoutInflater.inflate(R.layout.item_type_reminder, typeReminderContainer, false)
-            val label = row.findViewById<TextView>(R.id.tv_type_label)
-            val leadSpinner = row.findViewById<Spinner>(R.id.spinner_type_lead)
-            val enableSwitch = row.findViewById<Switch>(R.id.switch_type_enable)
-            label.text = typeLabelMap[item.type] ?: item.type
-            setupLeadSpinner(leadSpinner)
-            leadSpinner.setSelection(leadOptions.indexOf(item.leadMinutes).coerceAtLeast(0))
-            enableSwitch.isChecked = item.enabled
-
-            enableSwitch.setOnCheckedChangeListener { _, isChecked ->
-                if (isUpdatingTypeUi) return@setOnCheckedChangeListener
-                updateTypeReminder(item, item.leadMinutes, isChecked)
-            }
-            leadSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: android.widget.AdapterView<*>?,
-                    view: android.view.View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    if (isUpdatingTypeUi) return
-                    updateTypeReminder(item, leadOptions[position], enableSwitch.isChecked)
-                }
-
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-            }
-            typeReminderContainer.addView(row)
-        }
-        isUpdatingTypeUi = false
-    }
-
-    private fun updateTypeReminder(item: CourseTypeReminderEntity, leadMinutes: Int, enabled: Boolean) {
-        val updated = item.copy(leadMinutes = leadMinutes, enabled = enabled)
-        val current = viewModel.typeReminders.value?.toMutableList() ?: mutableListOf()
-        val index = current.indexOfFirst { it.type == item.type }
-        if (index >= 0) {
-            current[index] = updated
-            viewModel.updateTypeReminders(current)
-        }
-    }
-
     private fun pickTime(initial: String, onSelected: (String) -> Unit) {
         val time = LocalTime.parse(initial, timeFormatter)
         val dialog = TimePickerDialog(
@@ -378,17 +256,6 @@ class SettingsActivity : AppCompatActivity() {
             true
         )
         dialog.show()
-    }
-
-    private fun handleNotificationPermission(enable: Boolean) {
-        if (!enable) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                REQUEST_NOTIFICATIONS
-            )
-        }
     }
 
     private fun generatePeriodTimes(
@@ -446,7 +313,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val REQUEST_NOTIFICATIONS = 1201
         private const val DEFAULT_START_TIME = "08:00"
         private const val MAX_PERIOD_COUNT = 20
         private const val MAX_TOTAL_WEEKS = 20

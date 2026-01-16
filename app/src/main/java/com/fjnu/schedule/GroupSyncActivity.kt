@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.net.Uri
 import android.os.Bundle
-import android.text.InputType
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
@@ -30,8 +29,6 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
-import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
@@ -560,47 +557,7 @@ class GroupSyncActivity : AppCompatActivity() {
         }
         if (authInProgress) return
         authInProgress = true
-        AlertDialog.Builder(this)
-            .setTitle("登录以同步组队")
-            .setMessage("登录后可跨设备同步组队数据。")
-            .setPositiveButton("邮箱登录") { _, _ ->
-                showEmailSignInDialog(onReady)
-            }
-            .setNegativeButton("匿名体验") { _, _ ->
-                signInAnonymously(onReady)
-            }
-            .setOnDismissListener { authInProgress = false }
-            .show()
-    }
-
-    private fun showEmailSignInDialog(onReady: (() -> Unit)? = null) {
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val padding = dpToPx(16)
-            setPadding(padding, padding, padding, padding)
-        }
-        val emailInput = EditText(this).apply {
-            hint = "邮箱"
-            inputType = InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-        }
-        val passwordInput = EditText(this).apply {
-            hint = "密码"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        }
-        container.addView(emailInput)
-        container.addView(passwordInput)
-        AlertDialog.Builder(this)
-            .setTitle("邮箱登录")
-            .setView(container)
-            .setPositiveButton("登录/注册") { _, _ ->
-                val email = emailInput.text.toString().trim()
-                val password = passwordInput.text.toString().trim()
-                signInWithEmail(email, password, onReady)
-            }
-            .setNegativeButton("取消") { _, _ ->
-                authInProgress = false
-            }
-            .show()
+        signInAnonymously(onReady)
     }
 
     private fun signInAnonymously(onReady: (() -> Unit)? = null) {
@@ -608,45 +565,10 @@ class GroupSyncActivity : AppCompatActivity() {
             .addOnCompleteListener { task ->
                 authInProgress = false
                 if (task.isSuccessful) {
-                    Toast.makeText(this, "已匿名登录", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "已使用匿名身份连接", Toast.LENGTH_SHORT).show()
                     onReady?.invoke()
                 } else {
                     Toast.makeText(this, "匿名登录失败", Toast.LENGTH_SHORT).show()
-                }
-            }
-    }
-
-    private fun signInWithEmail(email: String, password: String, onReady: (() -> Unit)? = null) {
-        if (email.isBlank() || password.length < 6) {
-            Toast.makeText(this, "请输入有效邮箱与6位以上密码", Toast.LENGTH_SHORT).show()
-            authInProgress = false
-            return
-        }
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    authInProgress = false
-                    Toast.makeText(this, "登录成功", Toast.LENGTH_SHORT).show()
-                    onReady?.invoke()
-                } else {
-                    val exception = task.exception
-                    if (exception is FirebaseAuthInvalidUserException ||
-                        exception is FirebaseAuthInvalidCredentialsException
-                    ) {
-                        auth.createUserWithEmailAndPassword(email, password)
-                            .addOnCompleteListener { createTask ->
-                                authInProgress = false
-                                if (createTask.isSuccessful) {
-                                    Toast.makeText(this, "注册成功", Toast.LENGTH_SHORT).show()
-                                    onReady?.invoke()
-                                } else {
-                                    Toast.makeText(this, "注册失败：${createTask.exception?.message}", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                    } else {
-                        authInProgress = false
-                        Toast.makeText(this, "登录失败：${exception?.message}", Toast.LENGTH_SHORT).show()
-                    }
                 }
             }
     }
@@ -658,11 +580,11 @@ class GroupSyncActivity : AppCompatActivity() {
             return
         }
         val input = EditText(this).apply {
-            hint = "成员名称"
+            hint = "匿名昵称"
             setText("我")
         }
         AlertDialog.Builder(this)
-            .setTitle("设置成员名称")
+            .setTitle("设置匿名昵称")
             .setView(input)
             .setPositiveButton("确定") { _, _ ->
                 val name = input.text.toString().trim().ifBlank { "我" }

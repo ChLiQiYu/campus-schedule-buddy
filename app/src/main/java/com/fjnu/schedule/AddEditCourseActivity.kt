@@ -4,7 +4,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.text.TextUtils
+import android.widget.GridLayout
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
@@ -13,7 +13,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Spinner
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -27,6 +26,7 @@ import com.fjnu.schedule.data.SettingsRepository
 import com.fjnu.schedule.model.Course
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.fjnu.schedule.view.ColorPickerDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -222,6 +222,12 @@ class AddEditCourseActivity : AppCompatActivity() {
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, items.distinct())
         view.setAdapter(adapter)
         view.threshold = 1
+        view.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                view.showDropDown()
+            }
+        }
+        view.setOnClickListener { view.showDropDown() }
     }
 
     private fun setupPeriodSpinners(count: Int) {
@@ -397,8 +403,12 @@ class AddEditCourseActivity : AppCompatActivity() {
         }
         container.addView(quickRow)
 
-        val grid = android.widget.GridLayout(this).apply {
-            columnCount = 5
+        val columns = 4
+        val spacing = dpToPx(6)
+        val minButtonSize = dpToPx(44)
+
+        val grid = GridLayout(this).apply {
+            columnCount = columns
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -413,7 +423,14 @@ class AddEditCourseActivity : AppCompatActivity() {
             ).apply {
                 text = week.toString()
                 isCheckable = true
-                layoutParams = ViewGroup.LayoutParams(dpToPx(56), ViewGroup.LayoutParams.WRAP_CONTENT)
+                isSingleLine = true
+                maxLines = 1
+                setPadding(0, 0, 0, 0)
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = minButtonSize
+                    height = minButtonSize
+                    setMargins(spacing, spacing, spacing, spacing)
+                }
                 setOnClickListener {
                     if (tempSelected.contains(week)) {
                         tempSelected.remove(week)
@@ -429,10 +446,27 @@ class AddEditCourseActivity : AppCompatActivity() {
             buttons[week] = button
         }
         container.addView(grid)
+        grid.post {
+            val totalWidth = (grid.width - grid.paddingLeft - grid.paddingRight).coerceAtLeast(minButtonSize)
+            val buttonSize = ((totalWidth - spacing * columns * 2) / columns).coerceAtLeast(minButtonSize)
+            buttons.values.forEach { button ->
+                val params = button.layoutParams as GridLayout.LayoutParams
+                params.width = buttonSize
+                params.height = buttonSize
+                params.setMargins(spacing, spacing, spacing, spacing)
+                button.layoutParams = params
+                button.minWidth = buttonSize
+                button.minHeight = buttonSize
+            }
+        }
 
         btnAll.setOnClickListener {
-            tempSelected.clear()
-            tempSelected.addAll(1..totalWeeks)
+            if (tempSelected.size == totalWeeks) {
+                tempSelected.clear()
+            } else {
+                tempSelected.clear()
+                tempSelected.addAll(1..totalWeeks)
+            }
             buttons.forEach { (week, button) -> setWeekButtonStyle(button, tempSelected.contains(week)) }
         }
         btnOdd.setOnClickListener {
@@ -500,7 +534,7 @@ class AddEditCourseActivity : AppCompatActivity() {
 
     private fun openCustomColorPicker() {
         val initialColor = customColorValue ?: ContextCompat.getColor(this, R.color.primary)
-        showColorPickerDialog(initialColor) { color ->
+        ColorPickerDialog.show(this, initialColor) { color ->
             customColorValue = color
             val customIndex = colorValues.indexOf(customColorSentinel).coerceAtLeast(0)
             isColorSpinnerUpdating = true
@@ -519,99 +553,6 @@ class AddEditCourseActivity : AppCompatActivity() {
             setStroke(dpToPx(1), ContextCompat.getColor(this@AddEditCourseActivity, R.color.outline))
         }
         colorPreview.background = drawable
-    }
-
-    private fun showColorPickerDialog(initialColor: Int, onSelected: (Int) -> Unit) {
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val padding = dpToPx(16)
-            setPadding(padding, padding, padding, padding)
-        }
-
-        val preview = View(this).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dpToPx(40)
-            )
-        }
-        val hexLabel = TextView(this).apply {
-            ellipsize = TextUtils.TruncateAt.END
-        }
-        container.addView(preview)
-        container.addView(hexLabel)
-
-        val hsv = FloatArray(3)
-        Color.colorToHSV(initialColor, hsv)
-        val initialAlpha = Color.alpha(initialColor)
-
-        val hueLabel = TextView(this)
-        val satLabel = TextView(this)
-        val valLabel = TextView(this)
-        val alphaLabel = TextView(this)
-        val seekHue = android.widget.SeekBar(this).apply { max = 360 }
-        val seekSat = android.widget.SeekBar(this).apply { max = 100 }
-        val seekVal = android.widget.SeekBar(this).apply { max = 100 }
-        val seekAlpha = android.widget.SeekBar(this).apply { max = 255 }
-
-        seekHue.progress = hsv[0].toInt()
-        seekSat.progress = (hsv[1] * 100).toInt()
-        seekVal.progress = (hsv[2] * 100).toInt()
-        seekAlpha.progress = initialAlpha
-
-        fun updatePreview() {
-            val hue = seekHue.progress.toFloat()
-            val sat = seekSat.progress / 100f
-            val value = seekVal.progress / 100f
-            val alpha = seekAlpha.progress
-            val color = Color.HSVToColor(alpha, floatArrayOf(hue, sat, value))
-            preview.background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpToPx(6).toFloat()
-                setColor(color)
-            }
-            hexLabel.text = "当前颜色：${String.format("#%08X", color)}"
-            hueLabel.text = "色相: ${seekHue.progress}"
-            satLabel.text = "饱和度: ${seekSat.progress}%"
-            valLabel.text = "明度: ${seekVal.progress}%"
-            alphaLabel.text = "透明度: ${seekAlpha.progress}"
-        }
-
-        container.addView(hueLabel)
-        container.addView(seekHue)
-        container.addView(satLabel)
-        container.addView(seekSat)
-        container.addView(valLabel)
-        container.addView(seekVal)
-        container.addView(alphaLabel)
-        container.addView(seekAlpha)
-
-        val changeListener = object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                updatePreview()
-            }
-
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) = Unit
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) = Unit
-        }
-        seekHue.setOnSeekBarChangeListener(changeListener)
-        seekSat.setOnSeekBarChangeListener(changeListener)
-        seekVal.setOnSeekBarChangeListener(changeListener)
-        seekAlpha.setOnSeekBarChangeListener(changeListener)
-        updatePreview()
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle("自定义颜色")
-            .setView(container)
-            .setPositiveButton("确定") { _, _ ->
-                val hue = seekHue.progress.toFloat()
-                val sat = seekSat.progress / 100f
-                val value = seekVal.progress / 100f
-                val alpha = seekAlpha.progress
-                val color = Color.HSVToColor(alpha, floatArrayOf(hue, sat, value))
-                onSelected(color)
-            }
-            .setNegativeButton("取消", null)
-            .show()
     }
 
     private fun dpToPx(dp: Int): Int {
