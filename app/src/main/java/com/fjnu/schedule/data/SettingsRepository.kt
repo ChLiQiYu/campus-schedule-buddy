@@ -4,8 +4,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 
 class SettingsRepository(
     private val settingsDao: SettingsDao,
@@ -65,7 +67,7 @@ class SettingsRepository(
         val currentSemesterId = if (semesters.isEmpty()) {
             val defaultSemester = SemesterEntity(
                 name = "默认学期",
-                startDate = LocalDate.now().format(dateFormatter)
+                startDate = normalizeSemesterStart(LocalDate.now()).format(dateFormatter)
             )
             val id = semesterDao.insertSemester(defaultSemester)
             seedDefaultsForSemester(id)
@@ -87,7 +89,8 @@ class SettingsRepository(
     suspend fun updateSemesterStart(date: LocalDate) {
         val semesterId = resolveCurrentSemesterId()
         val current = semesterDao.getSemester(semesterId) ?: return
-        semesterDao.updateSemester(current.copy(startDate = date.format(dateFormatter)))
+        val normalized = normalizeSemesterStart(date)
+        semesterDao.updateSemester(current.copy(startDate = normalized.format(dateFormatter)))
     }
 
     suspend fun updatePeriodTimes(times: List<PeriodTimeEntity>) {
@@ -126,8 +129,9 @@ class SettingsRepository(
     }
 
     suspend fun createSemester(name: String, startDate: LocalDate): Long {
+        val normalized = normalizeSemesterStart(startDate)
         val id = semesterDao.insertSemester(
-            SemesterEntity(name = name, startDate = startDate.format(dateFormatter))
+            SemesterEntity(name = name, startDate = normalized.format(dateFormatter))
         )
         seedDefaultsForSemester(id)
         setCurrentSemester(id)
@@ -145,7 +149,7 @@ class SettingsRepository(
             return semesters.first().id
         }
         val id = semesterDao.insertSemester(
-            SemesterEntity(name = "默认学期", startDate = LocalDate.now().format(dateFormatter))
+            SemesterEntity(name = "默认学期", startDate = normalizeSemesterStart(LocalDate.now()).format(dateFormatter))
         )
         seedDefaultsForSemester(id)
         settingsDao.upsertAppSettings(AppSettingsEntity(currentSemesterId = id))
@@ -185,6 +189,10 @@ class SettingsRepository(
                 enableVibrate = true
             )
         )
+    }
+
+    private fun normalizeSemesterStart(date: LocalDate): LocalDate {
+        return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     }
 
     private fun defaultPeriodTimes(semesterId: Long): List<PeriodTimeEntity> {

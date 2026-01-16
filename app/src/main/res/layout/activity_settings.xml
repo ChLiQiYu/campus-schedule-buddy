@@ -193,6 +193,13 @@
                 android:layout_marginTop="8dp"
                 android:text="进入上课提醒设置" />
 
+            <Button
+                android:id="@+id/btn_add_widget"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="添加桌面小部件" />
+
         </LinearLayout>
     </ScrollView>
 

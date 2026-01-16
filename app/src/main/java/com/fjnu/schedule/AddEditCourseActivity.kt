@@ -27,6 +27,7 @@ import com.fjnu.schedule.model.Course
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.fjnu.schedule.view.ColorPickerDialog
+import com.fjnu.schedule.widget.ScheduleWidgetProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -373,7 +374,10 @@ class AddEditCourseActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 btnSave.isEnabled = true
                 when (result) {
-                    is CourseRepository.SaveResult.Success -> finish()
+                    is CourseRepository.SaveResult.Success -> {
+                        ScheduleWidgetProvider.requestUpdate(this@AddEditCourseActivity)
+                        finish()
+                    }
                     is CourseRepository.SaveResult.Error -> {
                         Toast.makeText(this@AddEditCourseActivity, result.message, Toast.LENGTH_SHORT).show()
                     }

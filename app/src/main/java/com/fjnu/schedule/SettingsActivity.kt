@@ -2,7 +2,10 @@ package com.fjnu.schedule
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -20,6 +23,7 @@ import com.fjnu.schedule.data.ScheduleSettingsEntity
 import com.fjnu.schedule.data.SettingsRepository
 import com.fjnu.schedule.viewmodel.SettingsViewModel
 import com.fjnu.schedule.viewmodel.SettingsViewModelFactory
+import com.fjnu.schedule.widget.ScheduleWidgetProvider
 import com.google.android.material.appbar.MaterialToolbar
 import java.time.LocalDate
 import java.time.LocalTime
@@ -37,9 +41,11 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var etTotalWeeks: EditText
     private lateinit var btnApplyScheduleSettings: Button
     private lateinit var btnOpenReminderSettings: Button
+    private lateinit var btnAddWidget: Button
 
     private var latestPeriodTimes: List<PeriodTimeEntity> = emptyList()
     private var latestScheduleSettings: ScheduleSettingsEntity? = null
+    private var latestSemesterStartDate: LocalDate? = null
     private var currentSemesterId: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,6 +79,7 @@ class SettingsActivity : AppCompatActivity() {
         etTotalWeeks = findViewById(R.id.et_total_weeks)
         btnApplyScheduleSettings = findViewById(R.id.btn_apply_schedule_settings)
         btnOpenReminderSettings = findViewById(R.id.btn_open_reminder_settings)
+        btnAddWidget = findViewById(R.id.btn_add_widget)
 
         val database = AppDatabase.getInstance(this)
         val repository = SettingsRepository(database.settingsDao(), database.semesterDao())
@@ -85,8 +92,10 @@ class SettingsActivity : AppCompatActivity() {
         btnOpenReminderSettings.setOnClickListener {
             startActivity(Intent(this, ReminderSettingsActivity::class.java))
         }
+        setupAddWidget()
         observeSettings()
     }
+
 
     private fun setupTemplateButtons() {
         findViewById<Button>(R.id.btn_template_45).setOnClickListener {
@@ -142,6 +151,7 @@ class SettingsActivity : AppCompatActivity() {
             val generated = generatePeriodTimes(periodCount, periodMinutes, breakMinutes, startTime)
             viewModel.updatePeriodTimes(generated)
             Toast.makeText(this, "已应用上课时间设置", Toast.LENGTH_SHORT).show()
+            ScheduleWidgetProvider.requestUpdate(this)
         }
     }
 
@@ -168,7 +178,9 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         viewModel.semesterStartDate.observe(this) { date ->
-            semesterDateText.text = date?.toString() ?: "未设置"
+            latestSemesterStartDate = date
+            updateSemesterRangeText()
+            ScheduleWidgetProvider.requestUpdate(this)
         }
 
         viewModel.periodTimes.observe(this) { times ->
@@ -183,6 +195,7 @@ class SettingsActivity : AppCompatActivity() {
             etPeriodMinutes.setText(settings.periodMinutes.toString())
             etBreakMinutes.setText(settings.breakMinutes.toString())
             etTotalWeeks.setText(settings.totalWeeks.toString())
+            updateSemesterRangeText()
         }
 
     }
@@ -312,9 +325,44 @@ class SettingsActivity : AppCompatActivity() {
         )
     }
 
+    private fun setupAddWidget() {
+        btnAddWidget.setOnClickListener {
+            requestPinWidget()
+        }
+    }
+
+    private fun requestPinWidget() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Toast.makeText(this, "请长按桌面添加“小组件”并选择课程表", Toast.LENGTH_LONG).show()
+            return
+        }
+        val appWidgetManager = getSystemService(AppWidgetManager::class.java)
+        if (appWidgetManager == null || !appWidgetManager.isRequestPinAppWidgetSupported) {
+            Toast.makeText(this, "当前启动器不支持一键添加，请手动添加小组件", Toast.LENGTH_LONG).show()
+            return
+        }
+        val provider = ComponentName(this, com.fjnu.schedule.widget.ScheduleWidgetProvider::class.java)
+        val requested = appWidgetManager.requestPinAppWidget(provider, null, null)
+        if (!requested) {
+            Toast.makeText(this, "无法添加小组件，请稍后重试", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateSemesterRangeText() {
+        val start = latestSemesterStartDate
+        if (start == null) {
+            semesterDateText.text = "未设置"
+            return
+        }
+        val totalWeeks = latestScheduleSettings?.totalWeeks ?: DEFAULT_TOTAL_WEEKS
+        val end = start.plusWeeks(totalWeeks.toLong()).minusDays(1)
+        semesterDateText.text = "$start ~ $end"
+    }
+
     companion object {
         private const val DEFAULT_START_TIME = "08:00"
         private const val MAX_PERIOD_COUNT = 20
         private const val MAX_TOTAL_WEEKS = 20
+        private const val DEFAULT_TOTAL_WEEKS = 20
     }
 }

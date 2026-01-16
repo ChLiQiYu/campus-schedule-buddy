@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <com.fjnu.schedule.view.HsvPaletteView
+            android:id="@+id/view_hsv_palette"
+            android:layout_width="0dp"
+            android:layout_height="200dp"
+            android:layout_weight="1"
+            android:background="#FFFFFF" />
+
+        <com.fjnu.schedule.view.HueBarView
+            android:id="@+id/view_hue_bar"
+            android:layout_width="28dp"
+            android:layout_height="200dp"
+            android:layout_marginStart="12dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <View
+            android:id="@+id/view_color_preview"
+            android:layout_width="40dp"
+            android:layout_height="20dp"
+            android:background="#FF0000" />
+
+        <EditText
+            android:id="@+id/et_hex_color"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:hint="#FF0000"
+            android:inputType="text"
+            android:maxLines="1"
+            android:text="#FF0000" />
+    </LinearLayout>
+
+</LinearLayout>

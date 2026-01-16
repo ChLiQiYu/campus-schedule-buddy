@@ -17,6 +17,7 @@ import com.fjnu.schedule.data.AppDatabase
 import com.fjnu.schedule.data.CourseRepository
 import com.fjnu.schedule.model.Course
 import com.fjnu.schedule.util.JwScheduleParser
+import com.fjnu.schedule.widget.ScheduleWidgetProvider
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
@@ -182,6 +183,7 @@ class JwImportActivity : AppCompatActivity() {
                 progressDialog.dismiss()
                 val message = "导入完成：成功${filtered.courses.size}条，跳过${skippedCount + filtered.conflictCount + filtered.duplicateCount}条"
                 Toast.makeText(this@JwImportActivity, message, Toast.LENGTH_LONG).show()
+                ScheduleWidgetProvider.requestUpdate(this@JwImportActivity)
                 setResult(RESULT_OK)
             } catch (e: Exception) {
                 progressDialog.dismiss()

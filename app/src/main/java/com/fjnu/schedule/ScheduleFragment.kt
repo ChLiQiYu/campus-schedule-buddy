@@ -68,6 +68,7 @@ import com.fjnu.schedule.util.CourseExcelImporter
 import android.database.Cursor
 import android.provider.OpenableColumns
 import androidx.fragment.app.Fragment
+import com.fjnu.schedule.widget.ScheduleWidgetProvider
 
 class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
@@ -1216,6 +1217,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 progressDialog.dismiss()
                 val message = "导入完成：成功${filtered.courses.size}条，跳过${skippedCount + filtered.conflictCount + filtered.duplicateCount}条"
                 Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                ScheduleWidgetProvider.requestUpdate(requireContext())
             } catch (e: Exception) {
                 progressDialog.dismiss()
                 Toast.makeText(
@@ -2078,6 +2080,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             repository.deleteCourse(course)
             withContext(Dispatchers.Main) {
                 Toast.makeText(requireContext(), "课程已删除", Toast.LENGTH_SHORT).show()
+                ScheduleWidgetProvider.requestUpdate(requireContext())
             }
         }
     }
