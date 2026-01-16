@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "481985042580",
+    "project_id": "campus-schedule-buddy",
+    "storage_bucket": "campus-schedule-buddy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:481985042580:android:b3629c71e982710d227c81",
+        "android_client_info": {
+          "package_name": "com.fjnu.schedule"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQVcPVWxWpZOXHiMdX4ImNEFkKP3U2FR4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
