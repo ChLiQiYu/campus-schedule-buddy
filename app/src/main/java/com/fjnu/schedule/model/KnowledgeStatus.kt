@@ -1,4 +1,4 @@
-package com.example.schedule.model
+package com.fjnu.schedule.model
 
 enum class KnowledgeStatus(val level: Int, val label: String) {
     NOT_STARTED(0, "未开始"),

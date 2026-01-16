@@ -1,7 +1,8 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
-import com.example.schedule.model.Course
+import com.fjnu.schedule.model.Course
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class RhythmRepository(
     private val courseDao: CourseDao,

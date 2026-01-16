@@ -1,4 +1,4 @@
-package com.example.schedule.media
+package com.fjnu.schedule.media
 
 import android.content.ContentUris
 import android.content.Context
@@ -6,10 +6,10 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.data.CourseAttachmentEntity
-import com.example.schedule.data.WorkspaceRepository
-import com.example.schedule.util.TimeMappingAlgorithm
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.CourseAttachmentEntity
+import com.fjnu.schedule.data.WorkspaceRepository
+import com.fjnu.schedule.util.TimeMappingAlgorithm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant

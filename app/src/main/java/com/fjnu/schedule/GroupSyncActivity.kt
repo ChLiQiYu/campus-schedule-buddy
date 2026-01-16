@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.fjnu.schedule
 
 import android.app.AlertDialog
 import android.app.NotificationChannel
@@ -19,12 +19,12 @@ import androidx.core.content.ContextCompat
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.data.CourseDao
-import com.example.schedule.data.PeriodTimeEntity
-import com.example.schedule.data.SettingsRepository
-import com.example.schedule.util.GroupSyncPayload
-import com.example.schedule.util.GroupSyncSerializer
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.CourseDao
+import com.fjnu.schedule.data.PeriodTimeEntity
+import com.fjnu.schedule.data.SettingsRepository
+import com.fjnu.schedule.util.GroupSyncPayload
+import com.fjnu.schedule.util.GroupSyncSerializer
 import com.google.android.gms.tasks.Tasks
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
@@ -70,6 +70,7 @@ class GroupSyncActivity : AppCompatActivity() {
     private var semesterStartDate: LocalDate = LocalDate.now()
     private var currentWeek: Int = 1
     private var selectedWeek: Int = 1
+    private var totalWeeks: Int = DEFAULT_TOTAL_WEEKS
     private var sessionListener: ListenerRegistration? = null
     private var membersListener: ListenerRegistration? = null
     private var externalSharesListener: ListenerRegistration? = null
@@ -180,6 +181,11 @@ class GroupSyncActivity : AppCompatActivity() {
         lifecycleScope.launch {
             settingsRepository.periodTimes.collectLatest { times ->
                 periodTimes = times
+            }
+        }
+        lifecycleScope.launch {
+            settingsRepository.scheduleSettings.collectLatest { settings ->
+                totalWeeks = settings?.totalWeeks ?: DEFAULT_TOTAL_WEEKS
             }
         }
         lifecycleScope.launch {
@@ -301,7 +307,7 @@ class GroupSyncActivity : AppCompatActivity() {
                 memberCountLabel.text = "成员数：${members.size}"
                 memberListLabel.text = formatMemberList(currentNames)
                 if (hasLoadedShares && newMembers.isNotEmpty()) {
-                    val sessionIdSeed = activeSession?.code?.hashCode() ?: 0
+                    val sessionIdSeed = (activeSession?.code?.hashCode() ?: 0).toLong()
                     notifyNewMembers(sessionIdSeed, newMembers.toList())
                 }
                 hasLoadedShares = true
@@ -746,7 +752,7 @@ class GroupSyncActivity : AppCompatActivity() {
             createSession(
                 code = code,
                 semesterId = currentSemesterId,
-                totalWeeks = DEFAULT_TOTAL_WEEKS,
+                totalWeeks = totalWeeks,
                 periodCount = periodCount,
                 visibility = VISIBILITY_INVITE
             )

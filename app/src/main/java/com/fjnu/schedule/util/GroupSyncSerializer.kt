@@ -1,4 +1,4 @@
-package com.example.schedule.util
+package com.fjnu.schedule.util
 
 import org.json.JSONObject
 

@@ -1,6 +1,6 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
-import com.example.schedule.model.Course
+import com.fjnu.schedule.model.Course
 import kotlinx.coroutines.flow.Flow
 
 class CourseRepository(private val courseDao: CourseDao) {
@@ -75,7 +75,7 @@ class CourseRepository(private val courseDao: CourseDao) {
         if (course.dayOfWeek !in 1..7) {
             return "星期选择不正确"
         }
-        if (course.startPeriod !in 1..8 || course.endPeriod !in 1..8) {
+        if (course.startPeriod !in 1..MAX_PERIOD || course.endPeriod !in 1..MAX_PERIOD) {
             return "节次范围不正确"
         }
         if (course.startPeriod > course.endPeriod) {
@@ -88,5 +88,9 @@ class CourseRepository(private val courseDao: CourseDao) {
             return "周数必须为正数"
         }
         return null
+    }
+
+    companion object {
+        private const val MAX_PERIOD = 20
     }
 }

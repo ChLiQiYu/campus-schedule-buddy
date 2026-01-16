@@ -1,4 +1,4 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
 import kotlinx.coroutines.flow.Flow
 

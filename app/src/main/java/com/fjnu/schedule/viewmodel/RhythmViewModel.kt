@@ -1,13 +1,13 @@
-package com.example.schedule.viewmodel
+package com.fjnu.schedule.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.schedule.data.RhythmRepository
-import com.example.schedule.data.SettingsRepository
-import com.example.schedule.model.WorkloadDay
-import com.example.schedule.util.WorkloadCalculator
+import com.fjnu.schedule.data.RhythmRepository
+import com.fjnu.schedule.data.SettingsRepository
+import com.fjnu.schedule.model.WorkloadDay
+import com.fjnu.schedule.util.WorkloadCalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -56,25 +56,27 @@ class RhythmViewModel(
             coursesFlow,
             tasksFlow,
             settingsRepository.periodTimes,
-            settingsRepository.observeSemesterStartDate()
-        ) { courses, tasks, periodTimes, startDate ->
+            settingsRepository.observeSemesterStartDate(),
+            settingsRepository.scheduleSettings
+        ) { courses, tasks, periodTimes, startDate, scheduleSettings ->
             val semesterStart = startDate ?: LocalDate.now()
-            val weekIndex = getCurrentWeek(semesterStart)
+            val totalWeeks = scheduleSettings?.totalWeeks ?: DEFAULT_TOTAL_WEEKS
+            val weekIndex = getCurrentWeek(semesterStart, totalWeeks)
             val periodCount = periodTimes.maxOfOrNull { it.period }?.coerceAtLeast(1) ?: 8
             WorkloadCalculator.calculateWeeklyWorkload(
                 courses = courses,
                 tasks = tasks,
                 semesterStartDate = semesterStart,
                 weekIndex = weekIndex,
-                totalWeeks = DEFAULT_TOTAL_WEEKS,
+                totalWeeks = totalWeeks,
                 periodCount = periodCount
             )
         }
     }
 
-    private fun getCurrentWeek(semesterStart: LocalDate): Int {
+    private fun getCurrentWeek(semesterStart: LocalDate, totalWeeks: Int): Int {
         val daysDiff = ChronoUnit.DAYS.between(semesterStart, LocalDate.now())
-        return ((daysDiff / 7).toInt() + 1).coerceAtLeast(1)
+        return ((daysDiff / 7).toInt() + 1).coerceAtLeast(1).coerceAtMost(totalWeeks)
     }
 
     companion object {

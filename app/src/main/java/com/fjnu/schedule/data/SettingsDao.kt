@@ -1,4 +1,4 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -25,6 +25,15 @@ interface SettingsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPeriodTimes(times: List<PeriodTimeEntity>)
+
+    @Query("SELECT * FROM schedule_settings WHERE semesterId = :semesterId LIMIT 1")
+    fun observeScheduleSettings(semesterId: Long): Flow<ScheduleSettingsEntity?>
+
+    @Query("SELECT * FROM schedule_settings WHERE semesterId = :semesterId LIMIT 1")
+    suspend fun getScheduleSettings(semesterId: Long): ScheduleSettingsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertScheduleSettings(settings: ScheduleSettingsEntity)
 
     @Query("SELECT * FROM reminder_settings WHERE semesterId = :semesterId LIMIT 1")
     fun observeReminderSettings(semesterId: Long): Flow<ReminderSettingsEntity?>

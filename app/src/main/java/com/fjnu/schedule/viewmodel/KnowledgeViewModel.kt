@@ -1,17 +1,18 @@
-package com.example.schedule.viewmodel
+package com.fjnu.schedule.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.schedule.data.KnowledgePointEntity
-import com.example.schedule.data.KnowledgeRepository
-import com.example.schedule.model.KnowledgeFilter
-import com.example.schedule.model.KnowledgeStatus
-import com.example.schedule.util.KnowledgeProgressCalculator
+import com.fjnu.schedule.data.KnowledgePointEntity
+import com.fjnu.schedule.data.KnowledgeRepository
+import com.fjnu.schedule.model.KnowledgeFilter
+import com.fjnu.schedule.model.KnowledgeStatus
+import com.fjnu.schedule.util.KnowledgeProgressCalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class KnowledgeViewModel(

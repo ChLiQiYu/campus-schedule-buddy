@@ -1,11 +1,11 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.example.schedule.model.Course
+import com.fjnu.schedule.model.Course
 
 @Database(
     entities = [
@@ -15,6 +15,7 @@ import com.example.schedule.model.Course
         PeriodTimeEntity::class,
         ReminderSettingsEntity::class,
         CourseTypeReminderEntity::class,
+        ScheduleSettingsEntity::class,
         CourseAttachmentEntity::class,
         CourseNoteEntity::class,
         GroupSyncSessionEntity::class,
@@ -22,7 +23,7 @@ import com.example.schedule.model.Course
         RhythmSettingsEntity::class,
         KnowledgePointEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -51,7 +52,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_4_5,
                     MIGRATION_5_6,
                     MIGRATION_6_7,
-                    MIGRATION_7_8
+                    MIGRATION_7_8,
+                    MIGRATION_8_9
                 )
                     .build()
                     .also { instance = it }
@@ -344,6 +346,39 @@ private val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
             """
             ALTER TABLE course_attachments
             ADD COLUMN sourceType TEXT NOT NULL DEFAULT '${CourseAttachmentEntity.SOURCE_MANUAL}'
+            """.trimIndent()
+        )
+    }
+}
+
+private val MIGRATION_8_9 = object : androidx.room.migration.Migration(8, 9) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS schedule_settings (
+                semesterId INTEGER NOT NULL PRIMARY KEY,
+                periodCount INTEGER NOT NULL,
+                periodMinutes INTEGER NOT NULL,
+                breakMinutes INTEGER NOT NULL,
+                totalWeeks INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO schedule_settings (semesterId, periodCount, periodMinutes, breakMinutes, totalWeeks)
+            SELECT semesters.id,
+                   COALESCE(periods.maxPeriod, 8),
+                   45,
+                   10,
+                   20
+            FROM semesters
+            LEFT JOIN (
+                SELECT semesterId, MAX(period) AS maxPeriod
+                FROM period_times
+                GROUP BY semesterId
+            ) AS periods
+            ON semesters.id = periods.semesterId
             """.trimIndent()
         )
     }

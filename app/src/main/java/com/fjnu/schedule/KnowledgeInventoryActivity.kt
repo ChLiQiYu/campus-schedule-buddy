@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.fjnu.schedule
 
 import android.app.AlertDialog
 import android.os.Bundle
@@ -14,14 +14,14 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.data.KnowledgeRepository
-import com.example.schedule.knowledge.KnowledgeAdapter
-import com.example.schedule.model.KnowledgeFilter
-import com.example.schedule.model.KnowledgeProgress
-import com.example.schedule.model.KnowledgeStatus
-import com.example.schedule.viewmodel.KnowledgeViewModel
-import com.example.schedule.viewmodel.KnowledgeViewModelFactory
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.KnowledgeRepository
+import com.fjnu.schedule.knowledge.KnowledgeAdapter
+import com.fjnu.schedule.model.KnowledgeFilter
+import com.fjnu.schedule.model.KnowledgeProgress
+import com.fjnu.schedule.model.KnowledgeStatus
+import com.fjnu.schedule.viewmodel.KnowledgeViewModel
+import com.fjnu.schedule.viewmodel.KnowledgeViewModelFactory
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
@@ -186,7 +186,7 @@ class KnowledgeInventoryActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showEditDialog(point: com.example.schedule.data.KnowledgePointEntity) {
+    private fun showEditDialog(point: com.fjnu.schedule.data.KnowledgePointEntity) {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val padding = dpToPx(16)
@@ -232,7 +232,7 @@ class KnowledgeInventoryActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun confirmDelete(point: com.example.schedule.data.KnowledgePointEntity) {
+    private fun confirmDelete(point: com.fjnu.schedule.data.KnowledgePointEntity) {
         AlertDialog.Builder(this)
             .setTitle("删除知识点")
             .setMessage("确定删除“${point.title}”吗？")

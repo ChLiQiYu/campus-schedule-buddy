@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.fjnu.schedule
 
 import android.content.Intent
 import android.os.Bundle

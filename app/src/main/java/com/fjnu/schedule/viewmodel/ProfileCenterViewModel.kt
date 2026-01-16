@@ -1,11 +1,11 @@
-package com.example.schedule.viewmodel
+package com.fjnu.schedule.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
-import com.example.schedule.data.CourseRepository
-import com.example.schedule.data.SettingsRepository
-import com.example.schedule.model.Course
+import com.fjnu.schedule.data.CourseRepository
+import com.fjnu.schedule.data.SettingsRepository
+import com.fjnu.schedule.model.Course
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf

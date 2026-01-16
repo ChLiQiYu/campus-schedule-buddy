@@ -1,8 +1,9 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -35,6 +36,13 @@ class SettingsRepository(
             kotlinx.coroutines.flow.flowOf(emptyList())
         } else {
             settingsDao.observePeriodTimes(semesterId)
+        }
+    }
+    val scheduleSettings: Flow<ScheduleSettingsEntity?> = currentSemesterId.flatMapLatest { semesterId ->
+        if (semesterId <= 0L) {
+            kotlinx.coroutines.flow.flowOf(null)
+        } else {
+            settingsDao.observeScheduleSettings(semesterId)
         }
     }
     val reminderSettings: Flow<ReminderSettingsEntity?> = currentSemesterId.flatMapLatest { semesterId ->
@@ -85,6 +93,11 @@ class SettingsRepository(
     suspend fun updatePeriodTimes(times: List<PeriodTimeEntity>) {
         val semesterId = resolveCurrentSemesterId()
         settingsDao.upsertPeriodTimes(times.map { it.copy(semesterId = semesterId) })
+    }
+
+    suspend fun updateScheduleSettings(settings: ScheduleSettingsEntity) {
+        val semesterId = resolveCurrentSemesterId()
+        settingsDao.upsertScheduleSettings(settings.copy(semesterId = semesterId))
     }
 
     suspend fun updateReminderSettings(settings: ReminderSettingsEntity) {
@@ -143,6 +156,9 @@ class SettingsRepository(
         if (settingsDao.getPeriodTimes(semesterId).isEmpty()) {
             settingsDao.upsertPeriodTimes(defaultPeriodTimes(semesterId))
         }
+        if (settingsDao.getScheduleSettings(semesterId) == null) {
+            settingsDao.upsertScheduleSettings(defaultScheduleSettings(semesterId))
+        }
         if (settingsDao.getCourseTypeReminders(semesterId).isEmpty()) {
             settingsDao.upsertCourseTypeReminders(defaultCourseTypeReminders(semesterId))
         }
@@ -159,6 +175,7 @@ class SettingsRepository(
 
     private suspend fun seedDefaultsForSemester(semesterId: Long) {
         settingsDao.upsertPeriodTimes(defaultPeriodTimes(semesterId))
+        settingsDao.upsertScheduleSettings(defaultScheduleSettings(semesterId))
         settingsDao.upsertCourseTypeReminders(defaultCourseTypeReminders(semesterId))
         settingsDao.upsertReminderSettings(
             ReminderSettingsEntity(
@@ -191,6 +208,16 @@ class SettingsRepository(
             CourseTypeReminderEntity(semesterId, "public_elective", 10, true),
             CourseTypeReminderEntity(semesterId, "experiment", 15, true),
             CourseTypeReminderEntity(semesterId, "pe", 5, true)
+        )
+    }
+
+    private fun defaultScheduleSettings(semesterId: Long): ScheduleSettingsEntity {
+        return ScheduleSettingsEntity(
+            semesterId = semesterId,
+            periodCount = 8,
+            periodMinutes = 45,
+            breakMinutes = 10,
+            totalWeeks = 20
         )
     }
 }

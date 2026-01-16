@@ -1,8 +1,8 @@
-package com.example.schedule
+package com.fjnu.schedule
 
-import com.example.schedule.data.CourseAttachmentEntity
-import com.example.schedule.model.Course
-import com.example.schedule.util.WorkloadCalculator
+import com.fjnu.schedule.data.CourseAttachmentEntity
+import com.fjnu.schedule.model.Course
+import com.fjnu.schedule.util.WorkloadCalculator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

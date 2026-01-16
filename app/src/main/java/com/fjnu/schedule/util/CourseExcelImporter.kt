@@ -1,8 +1,8 @@
-package com.example.schedule.util
+package com.fjnu.schedule.util
 
 import android.content.ContentResolver
 import android.net.Uri
-import com.example.schedule.model.Course
+import com.fjnu.schedule.model.Course
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.DataFormatter

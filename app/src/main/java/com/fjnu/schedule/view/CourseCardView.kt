@@ -1,4 +1,4 @@
-package com.example.schedule.view
+package com.fjnu.schedule.view
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
@@ -13,8 +13,8 @@ import android.widget.LinearLayout
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
-import com.example.schedule.R
-import com.example.schedule.model.Course
+import com.fjnu.schedule.R
+import com.fjnu.schedule.model.Course
 
 @SuppressLint("ClickableViewAccessibility")
 class CourseCardView @JvmOverloads constructor(
@@ -28,6 +28,7 @@ class CourseCardView @JvmOverloads constructor(
     private val teacherTextView: ChineseOptimizedTextView
     private val locationTextView: ChineseOptimizedTextView
     private val periodTextView: ChineseOptimizedTextView
+    private val taskBadgeView: AppCompatTextView
     private var backgroundDrawable: GradientDrawable? = null
     private var isCurrentCourse = false
     private val recordTextPaint = Paint().apply {
@@ -57,6 +58,14 @@ class CourseCardView @JvmOverloads constructor(
             setupForChineseText(8.0f, true, 3, 4)
         }
 
+        taskBadgeView = AppCompatTextView(context).apply {
+            textSize = 8f
+            setPadding(dpToPx(4), dpToPx(1), dpToPx(4), dpToPx(1))
+            visibility = View.GONE
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+        }
+
         // 优化教师姓名显示 - 每行3个中文，最多2行
         teacherTextView = ChineseOptimizedTextView(context).apply {
             setupForChineseText(8.0f, false, 3, 2)
@@ -73,20 +82,28 @@ class CourseCardView @JvmOverloads constructor(
             visibility = View.GONE
         }
 
+        // 标题行：课程名 + 作业徽标
+        val titleRow = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.START or Gravity.TOP
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+        val nameParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
+        courseNameTextView.layoutParams = nameParams
+        val badgeParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+        badgeParams.marginStart = dpToPx(4)
+        taskBadgeView.layoutParams = badgeParams
+        titleRow.addView(courseNameTextView)
+        titleRow.addView(taskBadgeView)
+
         // 添加子视图
-        addView(courseNameTextView)
+        addView(titleRow)
         addView(teacherTextView)
         addView(locationTextView)
         addView(periodTextView)
 
         // 为所有TextView设置自适应高度的布局参数，使其高度能根据实际内容自动调整
-        val textViewList = listOf(
-            courseNameTextView,
-            teacherTextView,
-            locationTextView,
-            periodTextView
-        )
-        
+        val textViewList = listOf(teacherTextView, locationTextView, periodTextView)
         textViewList.forEach { textView ->
             val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             textView.layoutParams = params
@@ -139,6 +156,7 @@ class CourseCardView @JvmOverloads constructor(
 
         // 根据系统主题更新文字颜色
         updateTextColors()
+        updateTaskBadgeStyle()
 
         // 重新测量文本，确保正确显示
         post { requestLayout() }
@@ -168,6 +186,27 @@ class CourseCardView @JvmOverloads constructor(
         teacherTextView.setTextColor(secondaryTextColor)
         locationTextView.setTextColor(secondaryTextColor)
         periodTextView.setTextColor(secondaryTextColor)
+    }
+
+    private fun updateTaskBadgeStyle() {
+        val badgeColor = Color.argb(230, 255, 255, 255)
+        val textColor = ContextCompat.getColor(context, R.color.text_primary)
+        val drawable = GradientDrawable().apply {
+            setColor(badgeColor)
+            cornerRadius = dpToPx(10).toFloat()
+        }
+        taskBadgeView.background = drawable
+        taskBadgeView.setTextColor(textColor)
+    }
+
+    fun setTaskCount(count: Int) {
+        if (count <= 0) {
+            taskBadgeView.visibility = View.GONE
+            return
+        }
+        val label = if (count == 1) "作业" else "作业$count"
+        taskBadgeView.text = label
+        taskBadgeView.visibility = View.VISIBLE
     }
     /**
      * 设置背景颜色
@@ -233,7 +272,12 @@ class CourseCardView @JvmOverloads constructor(
 
         if (isCurrentCourse) {
             val dotRadius = dpToPx(3)
-            val dotX = width - paddingRight - dpToPx(6)
+            val badgeOffset = if (taskBadgeView.visibility == View.VISIBLE) {
+                taskBadgeView.width + dpToPx(6)
+            } else {
+                0
+            }
+            val dotX = width - paddingRight - dpToPx(6) - badgeOffset
             val dotY = paddingTop + dpToPx(6)
             canvas.drawCircle(dotX.toFloat(), dotY.toFloat(), dotRadius.toFloat(), recordDotPaint)
             val textX = dotX - dpToPx(10)

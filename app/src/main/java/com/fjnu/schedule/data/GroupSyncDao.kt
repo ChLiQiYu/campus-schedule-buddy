@@ -1,4 +1,4 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
 import androidx.room.Dao
 import androidx.room.Insert

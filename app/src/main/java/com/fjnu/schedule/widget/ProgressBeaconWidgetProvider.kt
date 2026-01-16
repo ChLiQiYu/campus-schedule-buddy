@@ -1,4 +1,4 @@
-package com.example.schedule.widget
+package com.fjnu.schedule.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -6,10 +6,10 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
-import com.example.schedule.R
-import com.example.schedule.RhythmActivity
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.util.WorkloadCalculator
+import com.fjnu.schedule.R
+import com.fjnu.schedule.RhythmActivity
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.util.WorkloadCalculator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,20 +68,30 @@ class ProgressBeaconWidgetProvider : AppWidgetProvider() {
                 val semester = semesterDao.getSemester(semesterId)
                 val semesterStart = semester?.startDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
                 val courses = courseDao.getAllCourses(semesterId)
-                val tasks = workspaceDao.getTaskAttachments(
+                val tasksWithDue = workspaceDao.getTaskAttachments(
                     semesterId,
-                    com.example.schedule.data.CourseAttachmentEntity.TYPE_TASK
+                    com.fjnu.schedule.data.CourseAttachmentEntity.TYPE_TASK
+                )
+                val tasksAll = workspaceDao.getTaskAttachmentsAll(
+                    semesterId,
+                    com.fjnu.schedule.data.CourseAttachmentEntity.TYPE_TASK
                 )
                 val periodTimes = settingsDao.getPeriodTimes(semesterId)
-                val periodCount = periodTimes.maxOfOrNull { it.period }?.coerceAtLeast(1) ?: 8
-                val currentWeek = calculateCurrentWeek(semesterStart)
+                val scheduleSettings = settingsDao.getScheduleSettings(semesterId)
+                val periodCount = if (periodTimes.isNotEmpty()) {
+                    periodTimes.maxOf { it.period }.coerceAtLeast(1)
+                } else {
+                    scheduleSettings?.periodCount ?: DEFAULT_PERIOD_COUNT
+                }
+                val totalWeeks = scheduleSettings?.totalWeeks ?: DEFAULT_TOTAL_WEEKS
+                val currentWeek = calculateCurrentWeek(semesterStart, totalWeeks)
 
                 val weekWorkloads = WorkloadCalculator.calculateWeeklyWorkload(
                     courses = courses,
-                    tasks = tasks,
+                    tasks = tasksWithDue,
                     semesterStartDate = semesterStart,
                     weekIndex = currentWeek,
-                    totalWeeks = DEFAULT_TOTAL_WEEKS,
+                    totalWeeks = totalWeeks,
                     periodCount = periodCount
                 )
                 val todayIndex = LocalDate.now().dayOfWeek.value - 1
@@ -91,7 +101,7 @@ class ProgressBeaconWidgetProvider : AppWidgetProvider() {
                     weekWorkloads.map { it.index }
                 )
 
-                val taskText = buildTaskSummary(tasks)
+                val taskText = buildTaskSummary(tasksAll)
                 val loadText = "今日负荷：$todayLoad · 趋势：$trend"
 
                 val updatedViews = RemoteViews(context.packageName, R.layout.app_widget_progress_beacon)
@@ -102,12 +112,15 @@ class ProgressBeaconWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        private fun buildTaskSummary(tasks: List<com.example.schedule.data.CourseAttachmentEntity>): String {
+        private fun buildTaskSummary(tasks: List<com.fjnu.schedule.data.CourseAttachmentEntity>): String {
+            if (tasks.isEmpty()) {
+                return "暂无任务"
+            }
             val now = System.currentTimeMillis()
             val upcoming = tasks.filter { it.dueAt != null && it.dueAt >= now }
             val nearest = upcoming.minByOrNull { it.dueAt ?: Long.MAX_VALUE }
             if (nearest?.dueAt == null) {
-                return "暂无任务"
+                return "待办任务：${tasks.size}"
             }
             val dueDate = Instant.ofEpochMilli(nearest.dueAt)
                 .atZone(ZoneId.systemDefault())
@@ -121,11 +134,12 @@ class ProgressBeaconWidgetProvider : AppWidgetProvider() {
             return "最近任务：$suffix"
         }
 
-        private fun calculateCurrentWeek(semesterStart: LocalDate): Int {
+        private fun calculateCurrentWeek(semesterStart: LocalDate, totalWeeks: Int): Int {
             val daysDiff = ChronoUnit.DAYS.between(semesterStart, LocalDate.now())
-            return ((daysDiff / 7).toInt() + 1).coerceAtLeast(1)
+            return ((daysDiff / 7).toInt() + 1).coerceAtLeast(1).coerceAtMost(totalWeeks)
         }
 
         private const val DEFAULT_TOTAL_WEEKS = 20
+        private const val DEFAULT_PERIOD_COUNT = 8
     }
 }

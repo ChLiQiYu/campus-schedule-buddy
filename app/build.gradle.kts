@@ -2,14 +2,15 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.example.campus_schedule_buddy"
+    namespace = "com.fjnu.schedule"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.campus_schedule_buddy"
+        applicationId = "com.fjnu.schedule"
         minSdk = 29
         targetSdk = 34
         versionCode = 1
@@ -67,4 +68,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation(platform("com.google.firebase:firebase-bom:34.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 }

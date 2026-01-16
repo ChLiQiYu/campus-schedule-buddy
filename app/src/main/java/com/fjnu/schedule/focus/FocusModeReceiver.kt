@@ -1,4 +1,4 @@
-package com.example.schedule.focus
+package com.fjnu.schedule.focus
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -6,7 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import com.example.schedule.R
+import com.fjnu.schedule.R
 
 class FocusModeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

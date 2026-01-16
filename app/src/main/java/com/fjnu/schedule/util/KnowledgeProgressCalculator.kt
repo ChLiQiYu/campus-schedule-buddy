@@ -1,8 +1,8 @@
-package com.example.schedule.util
+package com.fjnu.schedule.util
 
-import com.example.schedule.data.KnowledgePointEntity
-import com.example.schedule.model.KnowledgeProgress
-import com.example.schedule.model.KnowledgeStatus
+import com.fjnu.schedule.data.KnowledgePointEntity
+import com.fjnu.schedule.model.KnowledgeProgress
+import com.fjnu.schedule.model.KnowledgeStatus
 import kotlin.math.roundToInt
 
 object KnowledgeProgressCalculator {

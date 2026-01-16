@@ -1,13 +1,13 @@
-package com.example.schedule.reminder
+package com.fjnu.schedule.reminder
 
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import com.example.schedule.data.CourseTypeReminderEntity
-import com.example.schedule.data.PeriodTimeEntity
-import com.example.schedule.data.ReminderSettingsEntity
-import com.example.schedule.model.Course
+import com.fjnu.schedule.data.CourseTypeReminderEntity
+import com.fjnu.schedule.data.PeriodTimeEntity
+import com.fjnu.schedule.data.ReminderSettingsEntity
+import com.fjnu.schedule.model.Course
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime

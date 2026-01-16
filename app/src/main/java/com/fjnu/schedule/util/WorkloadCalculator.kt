@@ -1,8 +1,8 @@
-package com.example.schedule.util
+package com.fjnu.schedule.util
 
-import com.example.schedule.data.CourseAttachmentEntity
-import com.example.schedule.model.Course
-import com.example.schedule.model.WorkloadDay
+import com.fjnu.schedule.data.CourseAttachmentEntity
+import com.fjnu.schedule.model.Course
+import com.fjnu.schedule.model.WorkloadDay
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

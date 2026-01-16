@@ -1,10 +1,10 @@
-package com.example.schedule.util
+package com.fjnu.schedule.util
 
-import com.example.schedule.data.CourseTypeReminderEntity
-import com.example.schedule.data.PeriodTimeEntity
-import com.example.schedule.data.ReminderSettingsEntity
-import com.example.schedule.data.SemesterEntity
-import com.example.schedule.model.Course
+import com.fjnu.schedule.data.CourseTypeReminderEntity
+import com.fjnu.schedule.data.PeriodTimeEntity
+import com.fjnu.schedule.data.ReminderSettingsEntity
+import com.fjnu.schedule.data.SemesterEntity
+import com.fjnu.schedule.model.Course
 import org.json.JSONArray
 import org.json.JSONObject
 

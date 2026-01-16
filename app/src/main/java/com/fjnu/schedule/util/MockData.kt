@@ -1,6 +1,6 @@
-package com.example.schedule.util
+package com.fjnu.schedule.util
 
-import com.example.schedule.model.Course
+import com.fjnu.schedule.model.Course
 
 object MockData {
     fun getMockCourses(currentWeek: Int = 1): List<Course> {

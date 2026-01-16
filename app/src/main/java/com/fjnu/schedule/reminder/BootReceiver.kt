@@ -1,11 +1,11 @@
-package com.example.schedule.reminder
+package com.fjnu.schedule.reminder
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.data.SettingsRepository
-import com.example.schedule.focus.FocusModeScheduler
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.SettingsRepository
+import com.fjnu.schedule.focus.FocusModeScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

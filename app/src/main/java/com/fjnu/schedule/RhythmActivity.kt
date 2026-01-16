@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.fjnu.schedule
 
 import android.app.NotificationManager
 import android.appwidget.AppWidgetManager
@@ -14,16 +14,16 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.data.PeriodTimeEntity
-import com.example.schedule.data.RhythmRepository
-import com.example.schedule.data.SettingsRepository
-import com.example.schedule.focus.FocusModeReceiver
-import com.example.schedule.focus.FocusModeScheduler
-import com.example.schedule.model.WorkloadDay
-import com.example.schedule.widget.ProgressBeaconWidgetProvider
-import com.example.schedule.viewmodel.RhythmViewModel
-import com.example.schedule.viewmodel.RhythmViewModelFactory
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.PeriodTimeEntity
+import com.fjnu.schedule.data.RhythmRepository
+import com.fjnu.schedule.data.SettingsRepository
+import com.fjnu.schedule.focus.FocusModeReceiver
+import com.fjnu.schedule.focus.FocusModeScheduler
+import com.fjnu.schedule.model.WorkloadDay
+import com.fjnu.schedule.widget.ProgressBeaconWidgetProvider
+import com.fjnu.schedule.viewmodel.RhythmViewModel
+import com.fjnu.schedule.viewmodel.RhythmViewModelFactory
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.switchmaterial.SwitchMaterial

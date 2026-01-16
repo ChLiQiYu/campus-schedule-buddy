@@ -1,6 +1,6 @@
-package com.example.schedule.util
+package com.fjnu.schedule.util
 
-import com.example.schedule.model.Course
+import com.fjnu.schedule.model.Course
 
 /**
  * 课程工具类
@@ -23,7 +23,7 @@ object CourseUtils {
      * @return 是否有效
      */
     fun isValidPeriodRange(startPeriod: Int, endPeriod: Int): Boolean {
-        return startPeriod in 1..8 && endPeriod in 1..8 && startPeriod <= endPeriod
+        return startPeriod in 1..MAX_PERIOD && endPeriod in 1..MAX_PERIOD && startPeriod <= endPeriod
     }
     
     /**
@@ -38,4 +38,6 @@ object CourseUtils {
             "${course.startPeriod}-${course.endPeriod}节"
         }
     }
+
+    private const val MAX_PERIOD = 20
 }

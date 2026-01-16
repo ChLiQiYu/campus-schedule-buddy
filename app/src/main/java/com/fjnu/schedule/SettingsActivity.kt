@@ -1,26 +1,30 @@
-package com.example.schedule
+package com.fjnu.schedule
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.data.CourseTypeReminderEntity
-import com.example.schedule.data.PeriodTimeEntity
-import com.example.schedule.data.SettingsRepository
-import com.example.schedule.viewmodel.SettingsViewModel
-import com.example.schedule.viewmodel.SettingsViewModelFactory
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.CourseTypeReminderEntity
+import com.fjnu.schedule.data.PeriodTimeEntity
+import com.fjnu.schedule.data.ScheduleSettingsEntity
+import com.fjnu.schedule.data.SettingsRepository
+import com.fjnu.schedule.viewmodel.SettingsViewModel
+import com.fjnu.schedule.viewmodel.SettingsViewModelFactory
 import com.google.android.material.appbar.MaterialToolbar
 import java.time.LocalDate
 import java.time.LocalTime
@@ -36,6 +40,12 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var reminderEnableSwitch: Switch
     private lateinit var reminderVibrateSwitch: Switch
     private lateinit var defaultLeadSpinner: Spinner
+    private lateinit var etPeriodCount: EditText
+    private lateinit var etPeriodMinutes: EditText
+    private lateinit var etBreakMinutes: EditText
+    private lateinit var etTotalWeeks: EditText
+    private lateinit var btnApplyScheduleSettings: Button
+    private lateinit var btnOpenReminderSettings: Button
 
     private val leadOptions = listOf(5, 10, 15, 20, 30)
     private val typeLabelMap = mapOf(
@@ -48,6 +58,9 @@ class SettingsActivity : AppCompatActivity() {
     )
     private var isUpdatingReminderUi = false
     private var isUpdatingTypeUi = false
+    private var latestPeriodTimes: List<PeriodTimeEntity> = emptyList()
+    private var latestScheduleSettings: ScheduleSettingsEntity? = null
+    private var currentSemesterId: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,6 +91,12 @@ class SettingsActivity : AppCompatActivity() {
         reminderEnableSwitch = findViewById(R.id.switch_reminder_enable)
         reminderVibrateSwitch = findViewById(R.id.switch_reminder_vibrate)
         defaultLeadSpinner = findViewById(R.id.spinner_default_lead)
+        etPeriodCount = findViewById(R.id.et_period_count)
+        etPeriodMinutes = findViewById(R.id.et_period_minutes)
+        etBreakMinutes = findViewById(R.id.et_break_minutes)
+        etTotalWeeks = findViewById(R.id.et_total_weeks)
+        btnApplyScheduleSettings = findViewById(R.id.btn_apply_schedule_settings)
+        btnOpenReminderSettings = findViewById(R.id.btn_open_reminder_settings)
 
         val database = AppDatabase.getInstance(this)
         val repository = SettingsRepository(database.settingsDao(), database.semesterDao())
@@ -87,6 +106,10 @@ class SettingsActivity : AppCompatActivity() {
         setupLeadSpinner(defaultLeadSpinner)
         setupTemplateButtons()
         setupSemesterDatePicker()
+        setupScheduleSettings()
+        btnOpenReminderSettings.setOnClickListener {
+            startActivity(Intent(this, ReminderSettingsActivity::class.java))
+        }
         observeSettings()
     }
 
@@ -109,6 +132,54 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupScheduleSettings() {
+        btnApplyScheduleSettings.setOnClickListener {
+            val periodCount = etPeriodCount.text.toString().trim().toIntOrNull()
+            val periodMinutes = etPeriodMinutes.text.toString().trim().toIntOrNull()
+            val breakMinutes = etBreakMinutes.text.toString().trim().toIntOrNull()
+            val totalWeeks = etTotalWeeks.text.toString().trim().toIntOrNull()
+
+            if (periodCount == null || periodCount <= 0) {
+                Toast.makeText(this, "请输入有效的每日节数", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (periodCount > MAX_PERIOD_COUNT) {
+                Toast.makeText(this, "每日节数建议不超过$MAX_PERIOD_COUNT", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (periodMinutes == null || periodMinutes <= 0) {
+                Toast.makeText(this, "请输入有效的每节课时长", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (breakMinutes == null || breakMinutes < 0) {
+                Toast.makeText(this, "请输入有效的课间时间", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (totalWeeks == null || totalWeeks <= 0) {
+                Toast.makeText(this, "请输入有效的学期周数", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (totalWeeks > MAX_TOTAL_WEEKS) {
+                Toast.makeText(this, "学期周数建议不超过$MAX_TOTAL_WEEKS", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val settings = ScheduleSettingsEntity(
+                semesterId = currentSemesterId,
+                periodCount = periodCount,
+                periodMinutes = periodMinutes,
+                breakMinutes = breakMinutes,
+                totalWeeks = totalWeeks
+            )
+            viewModel.updateScheduleSettings(settings)
+
+            val startTime = latestPeriodTimes.firstOrNull { it.period == 1 }?.startTime ?: DEFAULT_START_TIME
+            val generated = generatePeriodTimes(periodCount, periodMinutes, breakMinutes, startTime)
+            viewModel.updatePeriodTimes(generated)
+            Toast.makeText(this, "已应用上课时间设置", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun setupSemesterDatePicker() {
         findViewById<Button>(R.id.btn_pick_semester).setOnClickListener {
             val today = LocalDate.now()
@@ -127,12 +198,26 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun observeSettings() {
+        viewModel.currentSemesterId.observe(this) { semesterId ->
+            currentSemesterId = semesterId
+        }
+
         viewModel.semesterStartDate.observe(this) { date ->
             semesterDateText.text = date?.toString() ?: "未设置"
         }
 
         viewModel.periodTimes.observe(this) { times ->
+            latestPeriodTimes = times
             renderPeriodTimes(times)
+        }
+
+        viewModel.scheduleSettings.observe(this) { settings ->
+            if (settings == null) return@observe
+            latestScheduleSettings = settings
+            etPeriodCount.setText(settings.periodCount.toString())
+            etPeriodMinutes.setText(settings.periodMinutes.toString())
+            etBreakMinutes.setText(settings.breakMinutes.toString())
+            etTotalWeeks.setText(settings.totalWeeks.toString())
         }
 
         viewModel.reminderSettings.observe(this) { settings ->
@@ -180,7 +265,21 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun renderPeriodTimes(times: List<PeriodTimeEntity>) {
         periodContainer.removeAllViews()
-        val displayTimes = if (times.isEmpty()) default45Template() else times
+        val displayTimes = if (times.isEmpty()) {
+            val settings = latestScheduleSettings
+            if (settings != null) {
+                generatePeriodTimes(
+                    settings.periodCount,
+                    settings.periodMinutes,
+                    settings.breakMinutes,
+                    DEFAULT_START_TIME
+                )
+            } else {
+                default45Template()
+            }
+        } else {
+            times
+        }
         displayTimes.forEach { period ->
             val row = layoutInflater.inflate(R.layout.item_period_time, periodContainer, false)
             val label = row.findViewById<TextView>(R.id.tv_period_label)
@@ -292,6 +391,34 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun generatePeriodTimes(
+        periodCount: Int,
+        periodMinutes: Int,
+        breakMinutes: Int,
+        startTimeText: String
+    ): List<PeriodTimeEntity> {
+        val safeStart = try {
+            LocalTime.parse(startTimeText, timeFormatter)
+        } catch (_: Exception) {
+            LocalTime.of(8, 0)
+        }
+        val times = mutableListOf<PeriodTimeEntity>()
+        var currentStart = safeStart
+        for (period in 1..periodCount) {
+            val endTime = currentStart.plusMinutes(periodMinutes.toLong())
+            times.add(
+                PeriodTimeEntity(
+                    semesterId = 0L,
+                    period = period,
+                    startTime = currentStart.format(timeFormatter),
+                    endTime = endTime.format(timeFormatter)
+                )
+            )
+            currentStart = endTime.plusMinutes(breakMinutes.toLong())
+        }
+        return times
+    }
+
     private fun default45Template(): List<PeriodTimeEntity> {
         return listOf(
             PeriodTimeEntity(0, 1, "08:00", "08:45"),
@@ -320,5 +447,8 @@ class SettingsActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_NOTIFICATIONS = 1201
+        private const val DEFAULT_START_TIME = "08:00"
+        private const val MAX_PERIOD_COUNT = 20
+        private const val MAX_TOTAL_WEEKS = 20
     }
 }

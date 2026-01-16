@@ -1,4 +1,4 @@
-package com.example.schedule.model
+package com.fjnu.schedule.model
 
 enum class KnowledgeFilter(val label: String) {
     ALL("全部"),

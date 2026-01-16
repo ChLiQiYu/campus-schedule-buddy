@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.fjnu.schedule
 
 import org.junit.Test
 

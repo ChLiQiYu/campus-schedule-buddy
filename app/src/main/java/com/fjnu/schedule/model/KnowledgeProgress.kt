@@ -1,4 +1,4 @@
-package com.example.schedule.model
+package com.fjnu.schedule.model
 
 data class KnowledgeProgress(
     val totalCount: Int,

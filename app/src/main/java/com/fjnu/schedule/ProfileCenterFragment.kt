@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.fjnu.schedule
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,12 +7,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.data.CourseRepository
-import com.example.schedule.data.SettingsRepository
-import com.example.schedule.model.Course
-import com.example.schedule.viewmodel.ProfileCenterViewModel
-import com.example.schedule.viewmodel.ProfileCenterViewModelFactory
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.CourseRepository
+import com.fjnu.schedule.data.SettingsRepository
+import com.fjnu.schedule.model.Course
+import com.fjnu.schedule.viewmodel.ProfileCenterViewModel
+import com.fjnu.schedule.viewmodel.ProfileCenterViewModelFactory
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 

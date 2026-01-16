@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.fjnu.schedule
 
 import android.Manifest
 import android.content.ActivityNotFoundException
@@ -24,21 +24,21 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.schedule.model.Course
-import com.example.schedule.data.AppDatabase
-import com.example.schedule.data.CourseRepository
-import com.example.schedule.data.CourseAttachmentEntity
-import com.example.schedule.data.CourseNoteEntity
-import com.example.schedule.data.CourseTypeReminderEntity
-import com.example.schedule.data.CourseWorkspaceCount
-import com.example.schedule.data.PeriodTimeEntity
-import com.example.schedule.data.ReminderSettingsEntity
-import com.example.schedule.data.SettingsRepository
-import com.example.schedule.data.SemesterEntity
-import com.example.schedule.data.WorkspaceRepository
-import com.example.schedule.view.CourseCardView
-import com.example.schedule.view.CourseDetailDialog
-import com.example.schedule.view.AddEditCourseDialog
+import com.fjnu.schedule.model.Course
+import com.fjnu.schedule.data.AppDatabase
+import com.fjnu.schedule.data.CourseRepository
+import com.fjnu.schedule.data.CourseAttachmentEntity
+import com.fjnu.schedule.data.CourseNoteEntity
+import com.fjnu.schedule.data.CourseTypeReminderEntity
+import com.fjnu.schedule.data.CourseWorkspaceCount
+import com.fjnu.schedule.data.PeriodTimeEntity
+import com.fjnu.schedule.data.ReminderSettingsEntity
+import com.fjnu.schedule.data.ScheduleSettingsEntity
+import com.fjnu.schedule.data.SettingsRepository
+import com.fjnu.schedule.data.SemesterEntity
+import com.fjnu.schedule.data.WorkspaceRepository
+import com.fjnu.schedule.view.CourseCardView
+import com.fjnu.schedule.view.CourseDetailDialog
 import android.os.Handler
 import android.os.Looper
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -51,7 +51,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.example.schedule.reminder.ReminderScheduler
+import com.fjnu.schedule.reminder.ReminderScheduler
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.app.AlertDialog
@@ -64,7 +64,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import com.example.schedule.util.CourseExcelImporter
+import com.fjnu.schedule.util.CourseExcelImporter
 import android.database.Cursor
 import android.provider.OpenableColumns
 import androidx.fragment.app.Fragment
@@ -133,7 +133,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     }
 
     private var currentWeek = 1
-    private val totalWeeks = 20
+    private var totalWeeks = DEFAULT_TOTAL_WEEKS
 
     // 用于存储课程数据
     private val courseList = mutableListOf<Course>()
@@ -145,11 +145,14 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     private var semesterStartDate: LocalDate = LocalDate.now()
     private var reminderSettings: ReminderSettingsEntity? = null
     private var typeReminders: List<CourseTypeReminderEntity> = emptyList()
+    private var scheduleSettings: ScheduleSettingsEntity? = null
+    private var periodCount: Int = DEFAULT_PERIOD_COUNT
     private var currentSemesterId: Long = 0L
     private var semesters: List<SemesterEntity> = emptyList()
     private var selectedDayOfWeek: Int = LocalDate.now().dayOfWeek.value
     private var viewMode: ViewMode = ViewMode.WEEK
     private var workspaceCounts: Map<Long, CourseWorkspaceCount> = emptyMap()
+    private var taskCounts: Map<Long, Int> = emptyMap()
     private var currentCourseForQuickNote: Course? = null
     private var pendingAttachmentCourse: Course? = null
     private var workspaceRefresh: (() -> Unit)? = null
@@ -159,6 +162,14 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         WEEK,
         MONTH
     }
+
+    private data class ScheduleSettingsBundle(
+        val periodTimes: List<PeriodTimeEntity>,
+        val scheduleSettings: ScheduleSettingsEntity?,
+        val reminderSettings: ReminderSettingsEntity?,
+        val typeReminders: List<CourseTypeReminderEntity>,
+        val semesterStartDate: LocalDate?
+    )
 
     // 用于定期更新当前课程高亮状态
     private val handler = Handler(Looper.getMainLooper())
@@ -378,7 +389,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         return FrameLayout(requireContext()).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                getPeriodRowHeight() * 8
+                getPeriodRowHeight() * periodCount
             )
             clipChildren = false
             clipToPadding = false
@@ -405,19 +416,10 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             val timeTextColor = ContextCompat.getColor(requireContext(), R.color.text_secondary)
 
             val timeMap = periodTimes.associate { it.period to it }
-            val fallbackTimes = mapOf(
-                1 to Pair("08:00", "08:45"),
-                2 to Pair("08:55", "09:40"),
-                3 to Pair("10:00", "10:45"),
-                4 to Pair("10:55", "11:40"),
-                5 to Pair("14:00", "14:45"),
-                6 to Pair("14:55", "15:40"),
-                7 to Pair("16:00", "16:45"),
-                8 to Pair("16:55", "17:40")
-            )
+            val fallbackTimes = buildFallbackTimes(periodCount)
 
             // 为每个节次创建时间标签
-            for (period in 1..8) {
+            for (period in 1..periodCount) {
                 val periodTime = timeMap[period]
                 val (startTime, endTime) = if (periodTime != null) {
                     periodTime.startTime to periodTime.endTime
@@ -441,7 +443,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             }
 
             // 添加水平分隔线
-            for (i in 1..8) {
+            for (i in 1..periodCount) {
                 val divider = View(requireContext()).apply {
                     setBackgroundColor(lineColor)
                 }
@@ -455,7 +457,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             }
 
             // 添加垂直分隔线
-            val totalHeight = rowHeight * 8
+            val totalHeight = rowHeight * periodCount
             for (i in 0..dayCount) {
                 val divider = View(requireContext()).apply {
                     setBackgroundColor(lineColor)
@@ -469,6 +471,27 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 container.addView(divider)
             }
         }
+    }
+
+    private fun buildFallbackTimes(periodCount: Int): Map<Int, Pair<String, String>> {
+        val settings = scheduleSettings
+        val periodMinutes = settings?.periodMinutes ?: 45
+        val breakMinutes = settings?.breakMinutes ?: 10
+        val startTimeText = periodTimes.firstOrNull { it.period == 1 }?.startTime ?: DEFAULT_START_TIME
+        val formatter = DateTimeFormatter.ofPattern("HH:mm")
+        val safeStart = try {
+            LocalTime.parse(startTimeText, formatter)
+        } catch (_: Exception) {
+            LocalTime.of(8, 0)
+        }
+        val times = mutableMapOf<Int, Pair<String, String>>()
+        var currentStart = safeStart
+        for (period in 1..periodCount) {
+            val endTime = currentStart.plusMinutes(periodMinutes.toLong())
+            times[period] = currentStart.format(formatter) to endTime.format(formatter)
+            currentStart = endTime.plusMinutes(breakMinutes.toLong())
+        }
+        return times
     }
 
     private fun updateWeekHeaderLayout() {
@@ -795,6 +818,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             
             val courseCard = CourseCardView(requireContext()).apply {
                 setCourse(course)
+                setTaskCount(taskCounts[course.id] ?: 0)
                 tag = course
 
                 layoutParams = FrameLayout.LayoutParams(cardWidth, cardHeight).apply {
@@ -887,7 +911,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val start = semesterStartDate
         val today = LocalDate.now()
         val daysDiff = java.time.temporal.ChronoUnit.DAYS.between(start, today)
-        return ((daysDiff / 7).toInt() + 1).coerceAtLeast(1)
+        return ((daysDiff / 7).toInt() + 1).coerceAtLeast(1).coerceAtMost(totalWeeks)
     }
 
     private fun getWeekIndexForDate(date: LocalDate): Int {
@@ -955,7 +979,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     private fun handleExportUri(uri: Uri) {
         val semester = semesters.firstOrNull { it.id == currentSemesterId }
-        val json = com.example.schedule.util.CourseJsonSerializer.toJson(
+        val json = com.fjnu.schedule.util.CourseJsonSerializer.toJson(
             semester = semester,
             periodTimes = periodTimes,
             reminderSettings = reminderSettings,
@@ -1018,7 +1042,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                     requireContext().contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
                         ?: ""
                 }
-                val payload = com.example.schedule.util.CourseJsonSerializer.fromJson(json, currentSemesterId)
+                val payload = com.fjnu.schedule.util.CourseJsonSerializer.fromJson(json, currentSemesterId)
                 progressDialog.dismiss()
                 if (payload.courses.isEmpty()) {
                     throw IllegalStateException("未解析到课程数据，请检查导出文件")
@@ -1042,7 +1066,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     }
 
     private fun showJsonImportTargetDialog(
-        payload: com.example.schedule.util.CourseJsonPayload,
+        payload: com.fjnu.schedule.util.CourseJsonPayload,
         semesterName: String?,
         semesterStart: LocalDate?
     ) {
@@ -1067,7 +1091,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     }
 
     private fun importJsonPayloadToSemester(
-        payload: com.example.schedule.util.CourseJsonPayload,
+        payload: com.fjnu.schedule.util.CourseJsonPayload,
         semesterId: Long
     ) {
         val courses = payload.courses.map { it.copy(semesterId = semesterId) }
@@ -1903,21 +1927,41 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         }
 
         lifecycleScope.launch {
-            combine(
+            val settingsFlow = combine(
                 settingsRepository.periodTimes,
+                settingsRepository.scheduleSettings,
                 settingsRepository.reminderSettings,
                 settingsRepository.courseTypeReminders,
-                settingsRepository.observeSemesterStartDate(),
+                settingsRepository.observeSemesterStartDate()
+            ) { periods, schedule, reminder, types, semester ->
+                ScheduleSettingsBundle(
+                    periodTimes = periods,
+                    scheduleSettings = schedule,
+                    reminderSettings = reminder,
+                    typeReminders = types,
+                    semesterStartDate = semester
+                )
+            }
+            combine(
+                settingsFlow,
                 settingsRepository.currentSemesterId
-            ) { periods, reminder, types, semester, semesterId ->
-                periodTimes = periods
-                reminderSettings = reminder
-                typeReminders = types
-                semesterStartDate = semester ?: LocalDate.now()
+            ) { bundle, semesterId ->
+                periodTimes = bundle.periodTimes
+                scheduleSettings = bundle.scheduleSettings
+                val resolvedPeriodCount = if (bundle.periodTimes.isNotEmpty()) {
+                    bundle.periodTimes.maxOf { it.period }.coerceAtLeast(1)
+                } else {
+                    bundle.scheduleSettings?.periodCount ?: DEFAULT_PERIOD_COUNT
+                }
+                periodCount = resolvedPeriodCount
+                totalWeeks = bundle.scheduleSettings?.totalWeeks ?: DEFAULT_TOTAL_WEEKS
+                reminderSettings = bundle.reminderSettings
+                typeReminders = bundle.typeReminders
+                semesterStartDate = bundle.semesterStartDate ?: LocalDate.now()
                 currentSemesterId = semesterId
-                currentWeek = getCurrentWeek()
+                currentWeek = getCurrentWeek().coerceIn(1, totalWeeks)
                 requestRender()
-                reminder
+                bundle.reminderSettings
             }.collect { reminder ->
                 val reminderConfig = reminder ?: return@collect
                 withContext(Dispatchers.Default) {
@@ -1952,6 +1996,21 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                     requestRender()
                 }
         }
+
+        lifecycleScope.launch {
+            settingsRepository.currentSemesterId
+                .flatMapLatest { semesterId ->
+                    if (semesterId <= 0L) {
+                        flowOf(emptyList())
+                    } else {
+                        workspaceRepository.observeTaskCounts(semesterId)
+                    }
+                }
+                .collect { counts ->
+                    taskCounts = counts.associate { it.courseId to it.taskCount }
+                    requestRender()
+                }
+        }
     }
 
     private fun requestRender() {
@@ -1976,6 +2035,9 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         result = 31 * result + selectedDayOfWeek
         result = 31 * result + currentSemesterId.hashCode()
         result = 31 * result + workspaceCounts.hashCode()
+        result = 31 * result + taskCounts.hashCode()
+        result = 31 * result + periodCount
+        result = 31 * result + totalWeeks
         return result
     }
 
@@ -1984,41 +2046,18 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             Toast.makeText(requireContext(), "当前学期未就绪，稍后重试", Toast.LENGTH_SHORT).show()
             return
         }
-        val dialog = AddEditCourseDialog(requireContext(), null, currentSemesterId) { course, callback ->
-            lifecycleScope.launch {
-                val result = repository.addCourse(course)
-                withContext(Dispatchers.Main) {
-                    when (result) {
-                        is CourseRepository.SaveResult.Success -> {
-                            callback(AddEditCourseDialog.SaveFeedback(true))
-                        }
-                        is CourseRepository.SaveResult.Error -> {
-                            callback(AddEditCourseDialog.SaveFeedback(false, result.message))
-                        }
-                    }
-                }
-            }
+        val intent = Intent(requireContext(), AddEditCourseActivity::class.java).apply {
+            putExtra(AddEditCourseActivity.EXTRA_SEMESTER_ID, currentSemesterId)
         }
-        dialog.show()
+        startActivity(intent)
     }
 
     private fun showEditCourseDialog(course: Course) {
-        val dialog = AddEditCourseDialog(requireContext(), course, currentSemesterId) { updated, callback ->
-            lifecycleScope.launch {
-                val result = repository.updateCourse(updated)
-                withContext(Dispatchers.Main) {
-                    when (result) {
-                        is CourseRepository.SaveResult.Success -> {
-                            callback(AddEditCourseDialog.SaveFeedback(true))
-                        }
-                        is CourseRepository.SaveResult.Error -> {
-                            callback(AddEditCourseDialog.SaveFeedback(false, result.message))
-                        }
-                    }
-                }
-            }
+        val intent = Intent(requireContext(), AddEditCourseActivity::class.java).apply {
+            putExtra(AddEditCourseActivity.EXTRA_SEMESTER_ID, currentSemesterId)
+            putExtra(AddEditCourseActivity.EXTRA_COURSE_ID, course.id)
         }
-        dialog.show()
+        startActivity(intent)
     }
 
     private fun deleteCourse(course: Course) {
@@ -2119,5 +2158,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     companion object {
         private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1001
+        private const val DEFAULT_TOTAL_WEEKS = 20
+        private const val DEFAULT_PERIOD_COUNT = 8
+        private const val DEFAULT_START_TIME = "08:00"
     }
 }

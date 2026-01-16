@@ -1,7 +1,7 @@
-package com.example.schedule
+package com.fjnu.schedule
 
-import com.example.schedule.data.KnowledgePointEntity
-import com.example.schedule.util.KnowledgeProgressCalculator
+import com.fjnu.schedule.data.KnowledgePointEntity
+import com.fjnu.schedule.util.KnowledgeProgressCalculator
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

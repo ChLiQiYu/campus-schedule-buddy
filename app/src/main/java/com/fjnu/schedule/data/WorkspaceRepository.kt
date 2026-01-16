@@ -1,10 +1,14 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
 import kotlinx.coroutines.flow.Flow
 
 class WorkspaceRepository(private val workspaceDao: CourseWorkspaceDao) {
     fun observeCounts(semesterId: Long): Flow<List<CourseWorkspaceCount>> {
         return workspaceDao.observeWorkspaceCounts(semesterId)
+    }
+
+    fun observeTaskCounts(semesterId: Long): Flow<List<CourseTaskCount>> {
+        return workspaceDao.observeTaskCounts(semesterId, CourseAttachmentEntity.TYPE_TASK)
     }
 
     suspend fun getAttachments(semesterId: Long, courseId: Long): List<CourseAttachmentEntity> {

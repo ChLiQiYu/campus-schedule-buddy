@@ -1,13 +1,14 @@
-package com.example.schedule.viewmodel
+package com.fjnu.schedule.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.schedule.data.CourseTypeReminderEntity
-import com.example.schedule.data.PeriodTimeEntity
-import com.example.schedule.data.ReminderSettingsEntity
-import com.example.schedule.data.SettingsRepository
+import com.fjnu.schedule.data.CourseTypeReminderEntity
+import com.fjnu.schedule.data.PeriodTimeEntity
+import com.fjnu.schedule.data.ReminderSettingsEntity
+import com.fjnu.schedule.data.ScheduleSettingsEntity
+import com.fjnu.schedule.data.SettingsRepository
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -17,6 +18,7 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     val currentSemester = repository.currentSemester.asLiveData()
     val semesterStartDate = repository.observeSemesterStartDate().asLiveData()
     val periodTimes = repository.periodTimes.asLiveData()
+    val scheduleSettings = repository.scheduleSettings.asLiveData()
     val reminderSettings = repository.reminderSettings.asLiveData()
     val typeReminders = repository.courseTypeReminders.asLiveData()
 
@@ -47,6 +49,12 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     fun updatePeriodTimes(times: List<PeriodTimeEntity>) {
         viewModelScope.launch {
             repository.updatePeriodTimes(times)
+        }
+    }
+
+    fun updateScheduleSettings(settings: ScheduleSettingsEntity) {
+        viewModelScope.launch {
+            repository.updateScheduleSettings(settings)
         }
     }
 

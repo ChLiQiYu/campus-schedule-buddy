@@ -1,4 +1,4 @@
-package com.example.schedule.view
+package com.fjnu.schedule.view
 
 import android.app.AlertDialog
 import android.app.Dialog
@@ -10,8 +10,8 @@ import android.view.Window
 import android.widget.Button
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import com.example.schedule.R
-import com.example.schedule.model.Course
+import com.fjnu.schedule.R
+import com.fjnu.schedule.model.Course
 
 class CourseDetailDialog(
     context: Context,

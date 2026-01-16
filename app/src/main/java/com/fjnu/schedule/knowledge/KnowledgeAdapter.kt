@@ -1,4 +1,4 @@
-package com.example.schedule.knowledge
+package com.fjnu.schedule.knowledge
 
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
@@ -9,9 +9,9 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.schedule.R
-import com.example.schedule.data.KnowledgePointEntity
-import com.example.schedule.model.KnowledgeStatus
+import com.fjnu.schedule.R
+import com.fjnu.schedule.data.KnowledgePointEntity
+import com.fjnu.schedule.model.KnowledgeStatus
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

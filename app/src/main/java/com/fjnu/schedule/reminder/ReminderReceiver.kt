@@ -1,4 +1,4 @@
-package com.example.schedule.reminder
+package com.fjnu.schedule.reminder
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,8 +8,8 @@ import android.content.Intent
 import android.os.Build
 import android.app.PendingIntent
 import androidx.core.app.NotificationCompat
-import com.example.schedule.R
-import com.example.schedule.media.MediaQuickLinkReceiver
+import com.fjnu.schedule.R
+import com.fjnu.schedule.media.MediaQuickLinkReceiver
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

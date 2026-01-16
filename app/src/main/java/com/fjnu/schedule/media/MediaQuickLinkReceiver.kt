@@ -1,4 +1,4 @@
-package com.example.schedule.media
+package com.fjnu.schedule.media
 
 import android.content.BroadcastReceiver
 import android.content.Context

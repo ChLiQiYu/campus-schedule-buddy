@@ -1,4 +1,4 @@
-package com.example.schedule.model
+package com.fjnu.schedule.model
 
 import java.time.LocalDate
 

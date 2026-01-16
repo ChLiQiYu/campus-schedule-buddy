@@ -1,10 +1,10 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.schedule.model.Course
+import com.fjnu.schedule.model.Course
 
 @Entity(
     tableName = "knowledge_points",

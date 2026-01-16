@@ -1,4 +1,4 @@
-package com.example.schedule.data
+package com.fjnu.schedule.data
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -53,6 +53,12 @@ interface CourseWorkspaceDao {
     suspend fun getTaskAttachments(semesterId: Long, type: String): List<CourseAttachmentEntity>
 
     @Query(
+        "SELECT * FROM course_attachments " +
+            "WHERE semesterId = :semesterId AND type = :type"
+    )
+    suspend fun getTaskAttachmentsAll(semesterId: Long, type: String): List<CourseAttachmentEntity>
+
+    @Query(
         """
         SELECT courses.id AS courseId,
                COALESCE(attachment_counts.cnt, 0) AS attachmentCount,
@@ -76,4 +82,14 @@ interface CourseWorkspaceDao {
         """
     )
     fun observeWorkspaceCounts(semesterId: Long): Flow<List<CourseWorkspaceCount>>
+
+    @Query(
+        """
+        SELECT courseId, COUNT(*) AS taskCount
+        FROM course_attachments
+        WHERE semesterId = :semesterId AND type = :type
+        GROUP BY courseId
+        """
+    )
+    fun observeTaskCounts(semesterId: Long, type: String): Flow<List<CourseTaskCount>>
 }
