@@ -311,7 +311,7 @@
         android:id="@+id/fab_quick_note"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@id/fab_add_course"
+        android:layout_above="@id/fab_import_jw"
         android:layout_alignEnd="@id/fab_add_course"
         android:layout_marginBottom="12dp"
         android:contentDescription="快速笔记"
@@ -320,6 +320,19 @@
         app:srcCompat="@drawable/ic_note"
         app:tint="?attr/colorOnPrimary"
         app:fabSize="mini" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_import_jw"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/fab_add_course"
+        android:layout_alignEnd="@id/fab_add_course"
+        android:layout_marginBottom="12dp"
+        android:contentDescription="教务导入"
+        app:backgroundTint="?attr/colorPrimary"
+        app:fabSize="mini"
+        app:srcCompat="@drawable/ic_import"
+        app:tint="?attr/colorOnPrimary" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_course"

@@ -79,6 +79,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     private lateinit var scrollView: ScrollView
     private lateinit var fabAddCourse: FloatingActionButton
     private lateinit var fabQuickNote: FloatingActionButton
+    private lateinit var fabImportJw: FloatingActionButton
     private lateinit var weekHeader: LinearLayout
     private lateinit var timeHeader: TextView
     private lateinit var titleDate: TextView
@@ -214,6 +215,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         scrollView = root.findViewById(R.id.scrollView)
         fabAddCourse = root.findViewById(R.id.fab_add_course)
         fabQuickNote = root.findViewById(R.id.fab_quick_note)
+        fabImportJw = root.findViewById(R.id.fab_import_jw)
         weekHeader = root.findViewById(R.id.week_header)
         timeHeader = root.findViewById(R.id.tv_time_header)
         titleDate = root.findViewById(R.id.tv_title_date)
@@ -285,6 +287,17 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
         fabAddCourse.setOnClickListener {
             showAddCourseDialog()
+        }
+
+        fabImportJw.setOnClickListener {
+            if (currentSemesterId <= 0L) {
+                Toast.makeText(requireContext(), "当前学期未就绪，稍后重试", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val intent = Intent(requireContext(), JwImportActivity::class.java).apply {
+                putExtra(JwImportActivity.EXTRA_SEMESTER_ID, currentSemesterId)
+            }
+            startActivity(intent)
         }
 
         fabQuickNote.setOnClickListener {
