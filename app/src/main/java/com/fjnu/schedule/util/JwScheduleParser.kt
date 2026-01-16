@@ -79,25 +79,50 @@ object JwScheduleParser {
         val title = obj.optString("title").replace('\u00A0', ' ').trim()
         val rowHeader = obj.optString("rowHeader").replace('\u00A0', ' ').trim()
         val cellIndex = obj.optInt("cellIndex", -1)
-        val combined = listOf(raw, title, rowHeader)
+        val rowSpan = obj.optInt("rowSpan", 1)
+        val dayText = obj.optString("dayText").replace('\u00A0', ' ').trim()
+        val periodText = obj.optString("periodText").replace('\u00A0', ' ').trim()
+        val timeText = obj.optString("timeText").replace('\u00A0', ' ').trim()
+        val weekText = obj.optString("weekText").replace('\u00A0', ' ').trim()
+        val locationText = obj.optString("location").replace('\u00A0', ' ').trim()
+        val teacherText = obj.optString("teacher").replace('\u00A0', ' ').trim()
+
+        val combined = listOf(raw, title, rowHeader, dayText, periodText, timeText, weekText)
             .filter { it.isNotBlank() }
             .joinToString("\n")
-        val dayOfWeek = mapDayOfWeek(combined) ?: dayFromCellIndex(cellIndex)
-        val headerRange = parsePeriodRange(rowHeader)
-        val labeledRange = parsePeriodRangeWithLabel(combined)
-        val (startPeriod, endPeriod) = if (headerRange.first != null) {
-            headerRange
-        } else {
-            labeledRange
+
+        val dayOfWeek = mapDayOfWeek(dayText)
+            ?: mapDayOfWeek(combined)
+            ?: dayFromCellIndex(cellIndex)
+
+        val periodRangeFromText = parsePeriodRangeWithLabel(timeText.ifBlank { combined })
+        val periodRangeFromCell = if (periodText.isNotBlank()) parsePeriodRange(periodText) else parsePeriodRange(rowHeader)
+        val baseRange = when {
+            periodRangeFromText.first != null -> periodRangeFromText
+            periodRangeFromCell.first != null -> periodRangeFromCell
+            else -> parsePeriodRange(combined)
         }
-        val weekPattern = parseWeekPattern(combined)
+        val startPeriod = baseRange.first
+        val endPeriod = baseRange.second ?: startPeriod?.let { it + (rowSpan.coerceAtLeast(1) - 1) }
+
+        val weekSource = when {
+            weekText.isNotBlank() -> weekText
+            timeText.isNotBlank() -> timeText
+            else -> combined
+        }
+        val weekPattern = parseWeekPattern(weekSource)
 
         val lines = raw.split("\n").map { it.trim() }.filter { it.isNotBlank() }
-        val name = guessCourseName(lines)
-        val teacher = extractByLabels(combined, listOf("教师", "老师"))
+        val name = obj.optString("name").trim().takeIf { it.isNotBlank() } ?: guessCourseName(lines)
+        val teacherCandidate = teacherText.takeIf { it.isNotBlank() }
+            ?: extractByLabels(combined, listOf("教师", "老师"))
             ?: lines.firstOrNull { it.endsWith("老师") || it.endsWith("教师") }
-        val location = extractByLabels(combined, listOf("地点", "教室", "上课地点", "上课教室"))
+        val teacher = cleanField(teacherCandidate, listOf("教师", "老师"))
+
+        val locationCandidate = locationText.takeIf { it.isNotBlank() }
+            ?: extractByLabels(combined, listOf("上课地点", "上课教室", "地点", "教室"))
             ?: lines.firstOrNull { it.contains("楼") || it.contains("教室") || it.contains("实验室") }
+        val location = cleanField(locationCandidate, listOf("上课地点", "上课教室", "地点", "教室"))
         if (name.isNullOrBlank() || dayOfWeek == null || startPeriod == null || endPeriod == null || weekPattern.isEmpty()) {
             return null
         }
@@ -152,7 +177,7 @@ object JwScheduleParser {
 
     private fun extractByLabels(text: String, labels: List<String>): String? {
         labels.forEach { label ->
-            val pattern = Regex("${label}[：:]?\\s*([^\\n]+)")
+            val pattern = Regex("${label}\\s*[：:]?\\s*([^\\n]+)")
             val match = pattern.find(text)
             if (match != null) {
                 val value = match.groupValues.getOrNull(1)?.trim()
@@ -180,7 +205,11 @@ object JwScheduleParser {
     }
 
     private fun dayFromCellIndex(cellIndex: Int): Int? {
-        return if (cellIndex in 1..7) cellIndex else null
+        return when (cellIndex) {
+            in 2..8 -> cellIndex - 1
+            in 1..7 -> cellIndex
+            else -> null
+        }
     }
 
     private fun parsePeriodRange(text: String?): Pair<Int?, Int?> {
@@ -214,7 +243,9 @@ object JwScheduleParser {
         if (rawText.isNullOrBlank()) return emptyList()
         var text = rawText
         text = text.replace("周次", "")
+        text = text.replace("周数", "")
         text = text.replace("周", "")
+        text = text.replace("：", "").replace(":", "")
         text = text.replace("；", ",").replace("，", ",")
         text = text.replace("单周", "单").replace("双周", "双")
         text = text.replace(Regex("\\([^)]*节\\)"), "")
@@ -249,5 +280,19 @@ object JwScheduleParser {
             }
         }
         return weeks.toList().sorted()
+    }
+
+    private fun cleanField(value: String?, labels: List<String>): String? {
+        if (value.isNullOrBlank()) return null
+        var text = value
+        labels.forEach { label ->
+            text = text?.replace(label, "")
+        }
+        text = text?.replace("校区:", "")
+        text = text?.replace("校区：", "")
+        text = text?.replace("：", "")
+        text = text?.replace(":", "")
+        text = text?.replace(Regex("\\s+"), " ")
+        return text?.trim()?.ifBlank { null }
     }
 }

@@ -284,19 +284,98 @@ class JwImportActivity : AppCompatActivity() {
                   return JSON.stringify({source:'kbxx', items: window.kbxx});
                 }
               } catch (e) {}
-              var nodes = Array.from(document.querySelectorAll("div[class*='kbcontent']"));
+              function textOf(node) {
+                if (!node) return '';
+                return (node.innerText || node.textContent || '').trim();
+              }
+              function extractFromListTable() {
+                var table = document.querySelector('#kblist_table');
+                if (!table) return [];
+                var items = [];
+                var bodies = table.querySelectorAll("tbody[id^='xq_']");
+                bodies.forEach(function(body) {
+                  var dayText = textOf(body.querySelector('span.week'));
+                  var rows = body.querySelectorAll('tr');
+                  rows.forEach(function(row) {
+                    var periodCell = row.querySelector("td[id^='jc_']");
+                    var periodText = textOf(periodCell);
+                    var courseNodes = row.querySelectorAll('div.timetable_con');
+                    courseNodes.forEach(function(node) {
+                      var name = textOf(node.querySelector('.title'));
+                      var raw = textOf(node);
+                      var weekText = '';
+                      var locationText = '';
+                      var teacherText = '';
+                      var fonts = node.querySelectorAll('font');
+                      fonts.forEach(function(font) {
+                        var text = textOf(font);
+                        if (!text) return;
+                        if (font.querySelector('.glyphicon-calendar')) {
+                          weekText = text;
+                        }
+                        if (font.querySelector('.glyphicon-map-marker')) {
+                          locationText = text;
+                        }
+                        if (font.querySelector('.glyphicon-user')) {
+                          teacherText = text;
+                        }
+                      });
+                      items.push({
+                        source: 'kblist',
+                        name: name,
+                        raw: raw,
+                        dayText: dayText,
+                        periodText: periodText,
+                        weekText: weekText,
+                        location: locationText,
+                        teacher: teacherText
+                      });
+                    });
+                  });
+                });
+                return items;
+              }
+              var listItems = extractFromListTable();
+              if (listItems.length) {
+                return JSON.stringify({source:'kblist', items: listItems});
+              }
+              var nodes = Array.from(document.querySelectorAll(".timetable_con"));
               var items = nodes.map(function(node) {
                 var cell = node.closest('td');
                 var cellIndex = cell ? cell.cellIndex : -1;
+                var rowSpan = cell ? cell.rowSpan : 1;
                 var rowHeader = '';
-                if (cell && cell.parentElement && cell.parentElement.cells && cell.parentElement.cells.length > 0) {
-                  rowHeader = (cell.parentElement.cells[0].innerText || '').trim();
+                if (cell && cell.parentElement && cell.parentElement.cells && cell.parentElement.cells.length > 1) {
+                  rowHeader = textOf(cell.parentElement.cells[1]);
                 }
+                var name = textOf(node.querySelector('.title'));
+                var raw = textOf(node);
+                var timeText = '';
+                var locationText = '';
+                var teacherText = '';
+                var pList = node.querySelectorAll('p');
+                pList.forEach(function(p) {
+                  var labelSpan = p.querySelector('span[title]');
+                  var title = labelSpan ? labelSpan.getAttribute('title') : '';
+                  var text = textOf(p);
+                  if (title && title.indexOf('节/周') >= 0) {
+                    timeText = text;
+                  } else if (title && title.indexOf('上课地点') >= 0) {
+                    locationText = text;
+                  } else if (title && title.indexOf('教师') >= 0) {
+                    teacherText = text;
+                  }
+                });
                 return {
-                  raw: (node.innerText || node.textContent || '').trim(),
-                  title: (node.getAttribute('title') || '').trim(),
+                  source: 'grid',
+                  name: name,
+                  raw: raw,
                   cellIndex: cellIndex,
-                  rowHeader: rowHeader
+                  rowSpan: rowSpan,
+                  rowHeader: rowHeader,
+                  timeText: timeText,
+                  location: locationText,
+                  teacher: teacherText
                 };
               });
               return JSON.stringify({source:'dom', items: items});
