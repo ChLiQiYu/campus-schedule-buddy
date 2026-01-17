@@ -15,6 +15,12 @@
         android:textColor="@color/text_primary"
         android:textSize="14sp" />
 
+    <View
+        android:layout_width="28dp"
+        android:layout_height="3dp"
+        android:layout_marginTop="6dp"
+        android:background="@color/primary" />
+
     <TextView
         android:id="@+id/tv_widget_task"
         android:layout_width="match_parent"

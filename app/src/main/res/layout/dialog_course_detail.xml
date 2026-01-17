@@ -1,89 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:id="@+id/tv_course_name"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="课程名称"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="?android:attr/textColorPrimary" />
-
-        <TextView
-            android:id="@+id/tv_course_type_badge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:text="必修"
-            android:textColor="@color/white"
-            android:textSize="12sp"
-            android:layout_marginStart="16dp" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/layout_detail_content"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-        <TextView
-            android:id="@+id/tv_teacher"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="教师姓名"
-            android:textSize="18sp"
-            android:textStyle="normal"
-            android:textColor="?attr/textColorPrimary" />
-
-        <TextView
-            android:id="@+id/tv_location"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="上课地点"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorSecondary" />
-
-        <TextView
-            android:id="@+id/tv_time"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="上课时间"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorSecondary" />
-
-        <TextView
-            android:id="@+id/tv_week_pattern"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="周数模式"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorSecondary" />
+        android:orientation="vertical"
+        android:padding="20dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_course_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="课程名称"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorPrimary"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:id="@+id/tv_course_type_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="必修"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:layout_marginStart="12dp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_detail_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tv_teacher"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="教师姓名"
+                android:textSize="16sp"
+                android:textStyle="normal"
+                android:textColor="?attr/textColorPrimary" />
+
+            <TextView
+                android:id="@+id/tv_location"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="上课地点"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tv_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="上课时间"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tv_week_pattern"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="周数模式"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorSecondary" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/tv_color_label"
@@ -106,53 +112,53 @@
                 android:text="按类型自动"
                 android:textSize="14sp"
                 android:textColor="@color/white" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_note_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="备注:"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="?attr/textColorPrimary" />
+
+            <TextView
+                android:id="@+id/tv_note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="备注内容"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorSecondary" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tv_note_label"
+        <Button
+            android:id="@+id/btn_workspace"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="课程资料"
+            style="@style/Widget.MaterialComponents.Button"
+            android:padding="12dp"
+            android:elevation="4dp" />
+
+        <Button
+            android:id="@+id/btn_knowledge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="知识清单"
+            style="@style/Widget.MaterialComponents.Button"
+            android:padding="12dp"
+            android:elevation="4dp" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="备注:"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="?attr/textColorPrimary" />
-
-        <TextView
-            android:id="@+id/tv_note"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="备注内容"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorSecondary" />
-    </LinearLayout>
-
-    <Button
-        android:id="@+id/btn_workspace"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="课程资料"
-        style="@style/Widget.MaterialComponents.Button"
-        android:padding="12dp"
-        android:elevation="6dp" />
-
-    <Button
-        android:id="@+id/btn_knowledge"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="知识清单"
-        style="@style/Widget.MaterialComponents.Button"
-        android:padding="12dp"
-        android:elevation="6dp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:orientation="horizontal">
+            android:orientation="horizontal">
 
         <Button
             android:id="@+id/btn_edit"
@@ -190,6 +196,7 @@
             android:padding="12dp"
             android:elevation="6dp" />
 
-    </LinearLayout>
+        </LinearLayout>
 
-</LinearLayout>
+    </LinearLayout>
+</ScrollView>

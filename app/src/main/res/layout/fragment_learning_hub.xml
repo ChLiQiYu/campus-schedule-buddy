@@ -33,8 +33,10 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
+                app:cardElevation="2dp"
+                app:cardUseCompatPadding="true"
                 app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
@@ -60,14 +62,17 @@
                         android:layout_marginTop="8dp"
                         android:text="快速发起小组匹配与协同任务，寻找共同空闲时间。"
                         android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="13sp" />
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="2dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_open_group_sync"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="进入协同中心" />
+                        android:text="进入协同中心"
+                        app:iconPadding="8dp"
+                        app:cornerRadius="14dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

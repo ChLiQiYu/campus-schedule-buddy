@@ -4,23 +4,23 @@
     <color name="white">#FFFFFFFF</color>
     
     <!-- 课程类型色彩映射 -->
-    <color name="course_major_required">#FF4F46E5</color> <!-- 鲜亮靛蓝 -->
-    <color name="course_major_elective">#FFF97316</color> <!-- 鲜亮橙 -->
-    <color name="course_public_required">#FF22C55E</color> <!-- 鲜亮绿 -->
-    <color name="course_experiment">#FF06B6D4</color> <!-- 鲜亮青 -->
-    <color name="course_pe">#FFF43F5E</color> <!-- 鲜亮玫红 -->
+    <color name="course_major_required">#FF5B6CCB</color> <!-- 柔和靛蓝 -->
+    <color name="course_major_elective">#FFE39A5C</color> <!-- 柔和橙 -->
+    <color name="course_public_required">#FF5FBF8B</color> <!-- 柔和绿 -->
+    <color name="course_experiment">#FF5FB3C6</color> <!-- 柔和青 -->
+    <color name="course_pe">#FFE1829B</color> <!-- 柔和玫红 -->
 
     <!-- 主题色（浅色模式） -->
-    <color name="primary">#FF4F46E5</color>
-    <color name="on_primary">#FFF8FAFF</color>
-    <color name="secondary">#FFF97316</color>
-    <color name="on_secondary">#FFF8F6FB</color>
-    <color name="background">#FFF4F6FF</color>
+    <color name="primary">#FF5FBF8B</color>
+    <color name="on_primary">#FF0F2419</color>
+    <color name="secondary">#FF5FB3C6</color>
+    <color name="on_secondary">#FF0B1F24</color>
+    <color name="background">#FFF2F7F4</color>
     <color name="on_background">#FF1B1F24</color>
     <color name="surface">#FFFFFFFF</color>
     <color name="on_surface">#FF1B1F24</color>
-    <color name="outline">#FFDDE2E7</color>
-    <color name="error">#FFEF4444</color>
+    <color name="outline">#FFD7E1DD</color>
+    <color name="error">#FFE07A7A</color>
     <color name="on_error">#FFFDF6F6</color>
     
     <!-- 深色模式背景色 -->
@@ -36,10 +36,10 @@
     <!-- 文字颜色 -->
     <color name="dark_text_primary">#FFF1F3F5</color>
     <color name="dark_text_secondary">#FFB8BEC7</color>
-    <color name="light_text_primary">#FF1B1F24</color>
-    <color name="light_text_secondary">#FF6B7280</color>
+    <color name="light_text_primary">#FF1A2420</color>
+    <color name="light_text_secondary">#FF5F6B66</color>
     <color name="text_primary">#FF1B1F24</color>
-    <color name="text_secondary">#FF6B7280</color>
+    <color name="text_secondary">#FF5F6B66</color>
     <color name="bottom_nav_unchecked">#FF6B7280</color>
     
     <!-- 标题栏颜色 -->

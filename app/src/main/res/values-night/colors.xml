@@ -4,23 +4,23 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- 课程类型色彩映射（夜间更柔和） -->
-    <color name="course_major_required">#FF5B61D6</color>
-    <color name="course_major_elective">#FFDD7A2F</color>
-    <color name="course_public_required">#FF2FAE6F</color>
-    <color name="course_experiment">#FF1BA2B8</color>
-    <color name="course_pe">#FFDC4A6E</color>
+    <color name="course_major_required">#FF6F7AC5</color>
+    <color name="course_major_elective">#FFD2A06A</color>
+    <color name="course_public_required">#FF6BB48E</color>
+    <color name="course_experiment">#FF6AA7B8</color>
+    <color name="course_pe">#FFD08AA2</color>
 
     <!-- 主题色（深色模式） -->
-    <color name="primary">#FF5B61D6</color>
-    <color name="on_primary">#FF121418</color>
-    <color name="secondary">#FFDD7A2F</color>
-    <color name="on_secondary">#FF151318</color>
-    <color name="background">#FF1B1D20</color>
-    <color name="on_background">#FFF1F3F5</color>
-    <color name="surface">#FF23262A</color>
-    <color name="on_surface">#FFF1F3F5</color>
-    <color name="outline">#FF2F343A</color>
-    <color name="error">#FFEF6666</color>
+    <color name="primary">#FF6BB48E</color>
+    <color name="on_primary">#FF0A1510</color>
+    <color name="secondary">#FF6AA7B8</color>
+    <color name="on_secondary">#FF091417</color>
+    <color name="background">#FF1B1F1D</color>
+    <color name="on_background">#FFE9F1ED</color>
+    <color name="surface">#FF242825</color>
+    <color name="on_surface">#FFE9F1ED</color>
+    <color name="outline">#FF313833</color>
+    <color name="error">#FFD98383</color>
     <color name="on_error">#FF1B1010</color>
 
     <!-- 深色模式背景色 -->
@@ -35,12 +35,12 @@
 
     <!-- 文字颜色 -->
     <color name="dark_text_primary">#FFF1F3F5</color>
-    <color name="dark_text_secondary">#FFB8BEC7</color>
+    <color name="dark_text_secondary">#FFB7C3BD</color>
     <color name="light_text_primary">#FF1B1F24</color>
     <color name="light_text_secondary">#FF6B7280</color>
-    <color name="text_primary">#FFF1F3F5</color>
-    <color name="text_secondary">#FFB8BEC7</color>
-    <color name="bottom_nav_unchecked">#FFB8BEC7</color>
+    <color name="text_primary">#FFE9F1ED</color>
+    <color name="text_secondary">#FFB7C3BD</color>
+    <color name="bottom_nav_unchecked">#FFB7C3BD</color>
 
     <!-- 标题栏颜色 -->
     <color name="dark_title">#FF23262A</color>
