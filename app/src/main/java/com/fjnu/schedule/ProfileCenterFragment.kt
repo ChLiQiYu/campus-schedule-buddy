@@ -64,7 +64,7 @@ class ProfileCenterFragment : Fragment(R.layout.fragment_profile_center) {
         knowledgeEmpty.visibility = View.GONE
         courses.forEach { course ->
             val button = MaterialButton(requireContext()).apply {
-                text = "查看《${course.name}》知识清单"
+                text = "《${course.name}》"
                 setOnClickListener { openKnowledgeInventory(course) }
             }
             knowledgeContainer.addView(button)

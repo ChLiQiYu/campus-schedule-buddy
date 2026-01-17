@@ -10,14 +10,9 @@ import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
 import com.fjnu.schedule.MainActivity
 import com.fjnu.schedule.R
-import com.fjnu.schedule.data.AppDatabase
-import com.fjnu.schedule.model.Course
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 class ScheduleWidgetProvider : AppWidgetProvider() {
 
@@ -55,6 +50,7 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
             try {
                 val remoteViews = buildRemoteViews(context, widgetId)
                 manager.updateAppWidget(widgetId, remoteViews)
+                manager.notifyAppWidgetViewDataChanged(widgetId, R.id.list_widget_lines)
             } finally {
                 pendingResult.finish()
             }
@@ -64,109 +60,15 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
     private suspend fun buildRemoteViews(context: Context, widgetId: Int): RemoteViews {
         val remoteViews = RemoteViews(context.packageName, R.layout.app_widget_schedule)
         val mode = loadMode(context, widgetId)
-        val db = AppDatabase.getInstance(context)
-        val settingsDao = db.settingsDao()
-        val semesterDao = db.semesterDao()
-        val courseDao = db.courseDao()
-
-        val appSettings = settingsDao.getAppSettings()
-        val semesterId = appSettings?.currentSemesterId
-            ?: semesterDao.getSemesters().firstOrNull()?.id ?: 0L
-        val semester = semesterDao.getSemester(semesterId)
-        val scheduleSettings = settingsDao.getScheduleSettings(semesterId)
-        val totalWeeks = scheduleSettings?.totalWeeks ?: DEFAULT_TOTAL_WEEKS
-        val formatter = DateTimeFormatter.ISO_LOCAL_DATE
-        val startDate = semester?.startDate?.let { LocalDate.parse(it, formatter) } ?: LocalDate.now()
-        val today = LocalDate.now()
-        val currentWeek = calculateWeekIndex(startDate, today)
-
-        val courses = courseDao.getAllCourses(semesterId)
-        val lines = if (mode == MODE_WEEK) {
-            buildWeekLines(courses, currentWeek, totalWeeks)
-        } else {
-            buildDayLines(courses, currentWeek, totalWeeks, today.dayOfWeek.value)
+        val adapterIntent = Intent(context, ScheduleWidgetService::class.java).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
         }
-
-        val title = if (mode == MODE_WEEK) {
-            if (currentWeek in 1..totalWeeks) "Week $currentWeek" else "Week"
-        } else {
-            "Today"
-        }
-        remoteViews.setTextViewText(R.id.tv_widget_title, title)
+        remoteViews.setRemoteAdapter(R.id.list_widget_lines, adapterIntent)
+        remoteViews.setEmptyView(R.id.list_widget_lines, R.id.tv_widget_empty)
         applyModeStyle(context, remoteViews, mode)
-        bindLines(remoteViews, lines)
         bindActions(context, remoteViews, widgetId)
 
         return remoteViews
-    }
-
-    private fun buildDayLines(
-        courses: List<Course>,
-        weekIndex: Int,
-        totalWeeks: Int,
-        dayOfWeek: Int
-    ): List<String> {
-        if (weekIndex !in 1..totalWeeks) {
-            return listOf("Out of term")
-        }
-        val items = courses.filter { course ->
-            course.dayOfWeek == dayOfWeek && course.weekPattern.contains(weekIndex)
-        }.sortedWith(compareBy({ it.startPeriod }, { it.endPeriod }))
-        if (items.isEmpty()) {
-            return listOf("No courses")
-        }
-        return items.take(MAX_LINES).map { course ->
-            val periodText = if (course.startPeriod == course.endPeriod) {
-                "${course.startPeriod}"
-            } else {
-                "${course.startPeriod}-${course.endPeriod}"
-            }
-            val location = course.location?.let { " @ $it" } ?: ""
-            "$periodText ${course.name}$location"
-        }
-    }
-
-    private fun buildWeekLines(
-        courses: List<Course>,
-        weekIndex: Int,
-        totalWeeks: Int
-    ): List<String> {
-        if (weekIndex !in 1..totalWeeks) {
-            return listOf("Out of term")
-        }
-        val items = courses.filter { it.weekPattern.contains(weekIndex) }
-            .sortedWith(compareBy({ it.dayOfWeek }, { it.startPeriod }, { it.endPeriod }))
-        if (items.isEmpty()) {
-            return listOf("No courses")
-        }
-        return items.take(MAX_LINES).map { course ->
-            val dayText = formatDay(course.dayOfWeek)
-            val periodText = if (course.startPeriod == course.endPeriod) {
-                "${course.startPeriod}"
-            } else {
-                "${course.startPeriod}-${course.endPeriod}"
-            }
-            "$dayText $periodText ${course.name}"
-        }
-    }
-
-    private fun bindLines(remoteViews: RemoteViews, lines: List<String>) {
-        val lineIds = intArrayOf(
-            R.id.tv_widget_line1,
-            R.id.tv_widget_line2,
-            R.id.tv_widget_line3,
-            R.id.tv_widget_line4,
-            R.id.tv_widget_line5
-        )
-        lineIds.forEachIndexed { index, id ->
-            val text = lines.getOrNull(index)
-            if (text != null) {
-                remoteViews.setTextViewText(id, text)
-                remoteViews.setViewVisibility(id, android.view.View.VISIBLE)
-            } else {
-                remoteViews.setViewVisibility(id, android.view.View.GONE)
-            }
-        }
     }
 
     private fun bindActions(context: Context, remoteViews: RemoteViews, widgetId: Int) {
@@ -209,7 +111,7 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
         val selected = R.drawable.widget_tab_selected
         val unselected = R.drawable.widget_tab_unselected
         val selectedText = ContextCompat.getColor(context, android.R.color.white)
-        val unselectedText = ContextCompat.getColor(context, R.color.text_primary)
+        val unselectedText = ContextCompat.getColor(context, R.color.primary)
 
         if (mode == MODE_WEEK) {
             remoteViews.setInt(R.id.btn_widget_day, "setBackgroundResource", unselected)
@@ -221,23 +123,6 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
             remoteViews.setInt(R.id.btn_widget_week, "setBackgroundResource", unselected)
             remoteViews.setTextColor(R.id.btn_widget_day, selectedText)
             remoteViews.setTextColor(R.id.btn_widget_week, unselectedText)
-        }
-    }
-
-    private fun calculateWeekIndex(semesterStart: LocalDate, date: LocalDate): Int {
-        val daysDiff = ChronoUnit.DAYS.between(semesterStart, date)
-        return (daysDiff / 7).toInt() + 1
-    }
-
-    private fun formatDay(day: Int): String {
-        return when (day) {
-            1 -> "Mon"
-            2 -> "Tue"
-            3 -> "Wed"
-            4 -> "Thu"
-            5 -> "Fri"
-            6 -> "Sat"
-            else -> "Sun"
         }
     }
 
@@ -258,8 +143,6 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
         private const val PREF_MODE = "schedule_widget_mode_"
         private const val MODE_DAY = "day"
         private const val MODE_WEEK = "week"
-        private const val MAX_LINES = 5
-        private const val DEFAULT_TOTAL_WEEKS = 20
 
         private const val ACTION_SET_MODE = "com.fjnu.schedule.widget.ACTION_SET_MODE"
         private const val ACTION_UPDATE_ALL = "com.fjnu.schedule.widget.ACTION_UPDATE_ALL"

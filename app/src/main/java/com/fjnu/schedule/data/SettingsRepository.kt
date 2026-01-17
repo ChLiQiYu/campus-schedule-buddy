@@ -98,9 +98,27 @@ class SettingsRepository(
         settingsDao.upsertPeriodTimes(times.map { it.copy(semesterId = semesterId) })
     }
 
+    suspend fun trimPeriodTimes(maxPeriod: Int) {
+        val semesterId = resolveCurrentSemesterId()
+        settingsDao.deletePeriodTimesAfter(semesterId, maxPeriod)
+    }
+
     suspend fun updateScheduleSettings(settings: ScheduleSettingsEntity) {
         val semesterId = resolveCurrentSemesterId()
         settingsDao.upsertScheduleSettings(settings.copy(semesterId = semesterId))
+    }
+
+    suspend fun applyScheduleSettings(
+        settings: ScheduleSettingsEntity,
+        periodTimes: List<PeriodTimeEntity>,
+        trimAfter: Int? = null
+    ) {
+        val semesterId = resolveCurrentSemesterId()
+        settingsDao.upsertScheduleSettings(settings.copy(semesterId = semesterId))
+        if (trimAfter != null) {
+            settingsDao.deletePeriodTimesAfter(semesterId, trimAfter)
+        }
+        settingsDao.upsertPeriodTimes(periodTimes.map { it.copy(semesterId = semesterId) })
     }
 
     suspend fun updateReminderSettings(settings: ReminderSettingsEntity) {

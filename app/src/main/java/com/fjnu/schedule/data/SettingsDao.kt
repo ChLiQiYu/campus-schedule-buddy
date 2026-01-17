@@ -26,6 +26,9 @@ interface SettingsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPeriodTimes(times: List<PeriodTimeEntity>)
 
+    @Query("DELETE FROM period_times WHERE semesterId = :semesterId AND period > :maxPeriod")
+    suspend fun deletePeriodTimesAfter(semesterId: Long, maxPeriod: Int)
+
     @Query("SELECT * FROM schedule_settings WHERE semesterId = :semesterId LIMIT 1")
     fun observeScheduleSettings(semesterId: Long): Flow<ScheduleSettingsEntity?>
 

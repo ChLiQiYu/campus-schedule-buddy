@@ -51,7 +51,8 @@
                     android:id="@+id/btn_pick_semester"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="设置" />
+                    android:text="设置"
+                    android:textColor="?attr/colorOnPrimary" />
             </LinearLayout>
 
             <View
@@ -143,7 +144,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="应用并生成节次" />
+                    android:text="应用并生成节次"
+                    android:textColor="?attr/colorOnPrimary" />
             </LinearLayout>
 
             <LinearLayout
@@ -157,7 +159,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="标准45分钟" />
+                    android:text="标准45分钟"
+                    android:textColor="?attr/colorOnPrimary" />
 
                 <Button
                     android:id="@+id/btn_template_90"
@@ -165,7 +168,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="90分钟连上" />
+                    android:text="90分钟连上"
+                    android:textColor="?attr/colorOnPrimary" />
             </LinearLayout>
 
             <LinearLayout
@@ -191,14 +195,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="进入上课提醒设置" />
+                android:text="进入上课提醒设置"
+                android:textColor="?attr/colorOnPrimary" />
 
             <Button
                 android:id="@+id/btn_add_widget"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="添加桌面小部件" />
+                android:text="添加桌面小部件"
+                android:textColor="?attr/colorOnPrimary" />
 
         </LinearLayout>
     </ScrollView>

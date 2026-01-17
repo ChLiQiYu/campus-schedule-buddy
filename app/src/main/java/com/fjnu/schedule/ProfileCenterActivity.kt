@@ -76,7 +76,7 @@ class ProfileCenterActivity : AppCompatActivity() {
         knowledgeEmpty.visibility = View.GONE
         courses.forEach { course ->
             val button = MaterialButton(this).apply {
-                text = "查看《${course.name}》知识清单"
+                text = "《${course.name}》"
                 setOnClickListener { openKnowledgeInventory(course) }
             }
             knowledgeContainer.addView(button)

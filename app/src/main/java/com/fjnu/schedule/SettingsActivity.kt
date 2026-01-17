@@ -150,12 +150,12 @@ class SettingsActivity : AppCompatActivity() {
                 breakMinutes = breakMinutes,
                 totalWeeks = totalWeeks
             )
-            viewModel.updateScheduleSettings(settings)
-
+            val previousCount = latestScheduleSettings?.periodCount ?: periodCount
             val startTime =
                 latestPeriodTimes.firstOrNull { it.period == 1 }?.startTime ?: DEFAULT_START_TIME
             val generated = generatePeriodTimes(periodCount, periodMinutes, breakMinutes, startTime)
-            viewModel.updatePeriodTimes(generated)
+            val trimAfter = if (periodCount < previousCount) periodCount else null
+            viewModel.applyScheduleSettings(settings, generated, trimAfter)
             Toast.makeText(this, "已应用上课时间设置", Toast.LENGTH_SHORT).show()
             ScheduleWidgetProvider.requestUpdate(this)
         }
@@ -337,19 +337,20 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun requestPinWidget() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            Toast.makeText(this, "请长按桌面添加“小组件”并选择课程表", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "请长按桌面空白处 → 小部件 → 课程表", Toast.LENGTH_LONG).show()
             return
         }
         val appWidgetManager = getSystemService(AppWidgetManager::class.java)
         if (appWidgetManager == null || !appWidgetManager.isRequestPinAppWidgetSupported) {
-            Toast.makeText(this, "当前启动器不支持一键添加，请手动添加小组件", Toast.LENGTH_LONG)
-                .show()
+            Toast.makeText(this, "当前启动器不支持一键添加，请手动添加：桌面空白处 → 小部件 → 课程表", Toast.LENGTH_LONG).show()
             return
         }
         val provider = ComponentName(this, ScheduleWidgetProvider::class.java)
         val requested = appWidgetManager.requestPinAppWidget(provider, null, null)
         if (!requested) {
-            Toast.makeText(this, "无法添加小组件，请稍后重试", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "未能唤起添加流程，请手动添加：桌面空白处 → 小部件 → 课程表", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "已发起添加，请在桌面确认", Toast.LENGTH_SHORT).show()
         }
     }
 

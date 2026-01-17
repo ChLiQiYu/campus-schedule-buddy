@@ -65,7 +65,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="进入设置" />
+                        android:text="进入设置"
+                        android:textColor="?attr/colorOnPrimary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -105,7 +106,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="打开学业节律" />
+                        android:text="打开学业节律"
+                        android:textColor="?attr/colorOnPrimary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

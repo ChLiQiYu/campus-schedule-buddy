@@ -52,9 +52,25 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         }
     }
 
+    fun trimPeriodTimes(maxPeriod: Int) {
+        viewModelScope.launch {
+            repository.trimPeriodTimes(maxPeriod)
+        }
+    }
+
     fun updateScheduleSettings(settings: ScheduleSettingsEntity) {
         viewModelScope.launch {
             repository.updateScheduleSettings(settings)
+        }
+    }
+
+    fun applyScheduleSettings(
+        settings: ScheduleSettingsEntity,
+        periodTimes: List<PeriodTimeEntity>,
+        trimAfter: Int?
+    ) {
+        viewModelScope.launch {
+            repository.applyScheduleSettings(settings, periodTimes, trimAfter)
         }
     }
 
