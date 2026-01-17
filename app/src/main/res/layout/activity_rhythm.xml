@@ -35,7 +35,16 @@
                 android:layout_height="wrap_content"
                 android:text="本周学业负荷"
                 android:textStyle="bold"
+                android:textSize="18sp"
                 android:textColor="?android:attr/textColorPrimary" />
+
+            <LinearLayout
+                android:id="@+id/container_workload_chart"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="8dp"
+                android:gravity="bottom"
+                android:orientation="horizontal" />
 
             <LinearLayout
                 android:id="@+id/container_workload"

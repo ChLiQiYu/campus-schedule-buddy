@@ -9,7 +9,7 @@ import android.provider.Settings
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Spinner
-import android.widget.Switch
+import com.google.android.material.switchmaterial.SwitchMaterial
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -28,8 +28,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class ReminderSettingsActivity : AppCompatActivity() {
     private lateinit var viewModel: SettingsViewModel
-    private lateinit var enableSwitch: Switch
-    private lateinit var vibrateSwitch: Switch
+    private lateinit var enableSwitch: SwitchMaterial
+    private lateinit var vibrateSwitch: SwitchMaterial
     private lateinit var leadSpinner: Spinner
     private lateinit var permissionHint: TextView
     private lateinit var btnNotification: Button
@@ -170,36 +170,39 @@ class ReminderSettingsActivity : AppCompatActivity() {
         typeReminderContainer.removeAllViews()
         if (items.isEmpty()) return
         isUpdatingTypeUi = true
-        items.forEach { item ->
-            val row = layoutInflater.inflate(R.layout.item_type_reminder, typeReminderContainer, false)
-            val label = row.findViewById<TextView>(R.id.tv_type_label)
-            val leadSpinner = row.findViewById<Spinner>(R.id.spinner_type_lead)
-            val enableSwitch = row.findViewById<Switch>(R.id.switch_type_enable)
-            label.text = typeLabelMap[item.type] ?: item.type
-            setupLeadSpinner(leadSpinner)
-            leadSpinner.setSelection(leadOptions.indexOf(item.leadMinutes).coerceAtLeast(0))
-            enableSwitch.isChecked = item.enabled
+        try {
+            items.forEach { item ->
+                val row = layoutInflater.inflate(R.layout.item_type_reminder, typeReminderContainer, false)
+                val label = row.findViewById<TextView>(R.id.tv_type_label)
+                val leadSpinner = row.findViewById<Spinner>(R.id.spinner_type_lead)
+                val enableSwitch = row.findViewById<SwitchMaterial>(R.id.switch_type_enable)
+                label.text = typeLabelMap[item.type] ?: item.type
+                setupLeadSpinner(leadSpinner)
+                leadSpinner.setSelection(leadOptions.indexOf(item.leadMinutes).coerceAtLeast(0))
+                enableSwitch.isChecked = item.enabled
 
-            enableSwitch.setOnCheckedChangeListener { _, isChecked ->
-                if (isUpdatingTypeUi) return@setOnCheckedChangeListener
-                updateTypeReminder(item, item.leadMinutes, isChecked)
-            }
-            leadSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: android.widget.AdapterView<*>?,
-                    view: android.view.View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    if (isUpdatingTypeUi) return
-                    updateTypeReminder(item, leadOptions[position], enableSwitch.isChecked)
+                enableSwitch.setOnCheckedChangeListener { _, isChecked ->
+                    if (isUpdatingTypeUi) return@setOnCheckedChangeListener
+                    updateTypeReminder(item, item.leadMinutes, isChecked)
                 }
+                leadSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(
+                        parent: android.widget.AdapterView<*>?,
+                        view: android.view.View?,
+                        position: Int,
+                        id: Long
+                    ) {
+                        if (isUpdatingTypeUi) return
+                        updateTypeReminder(item, leadOptions[position], enableSwitch.isChecked)
+                    }
 
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+                }
+                typeReminderContainer.addView(row)
             }
-            typeReminderContainer.addView(row)
+        } finally {
+            isUpdatingTypeUi = false
         }
-        isUpdatingTypeUi = false
     }
 
     private fun updateTypeReminder(item: CourseTypeReminderEntity, leadMinutes: Int, enabled: Boolean) {
@@ -218,10 +221,16 @@ class ReminderSettingsActivity : AppCompatActivity() {
         btnNotification.visibility = if (hasNotification) android.view.View.GONE else android.view.View.VISIBLE
         btnExactAlarm.visibility = if (hasExactAlarm) android.view.View.GONE else android.view.View.VISIBLE
         permissionHint.text = when {
-            !hasNotification -> "需要通知权限用于发送上课提醒。"
-            !hasExactAlarm -> "需要精准提醒权限以保证准时触达。"
-            else -> "提醒权限已开启。"
+            !hasNotification -> "⚠️ 需要通知权限用于发送上课提醒"
+            !hasExactAlarm -> "⚠️ 需要精准提醒权限以保证准时触达"
+            else -> "✅ 提醒权限已开启"
         }
+        permissionHint.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (!hasNotification || !hasExactAlarm) R.color.error else R.color.course_public_required
+            )
+        )
     }
 
     private fun hasNotificationPermission(): Boolean {

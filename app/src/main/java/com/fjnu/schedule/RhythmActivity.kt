@@ -7,6 +7,12 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
+import android.text.style.StyleSpan
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -42,6 +48,7 @@ class RhythmActivity : AppCompatActivity() {
     private lateinit var dndStatusLabel: TextView
     private lateinit var requestDndButton: MaterialButton
     private lateinit var addWidgetButton: MaterialButton
+    private lateinit var workloadChart: LinearLayout
 
     private var currentSemesterId: Long = 0L
     private var periodTimes: List<PeriodTimeEntity> = emptyList()
@@ -109,6 +116,7 @@ class RhythmActivity : AppCompatActivity() {
 
     private fun initViews() {
         workloadContainer = findViewById(R.id.container_workload)
+        workloadChart = findViewById(R.id.container_workload_chart)
         autoFocusSwitch = findViewById(R.id.switch_auto_focus)
         dndStatusLabel = findViewById(R.id.tv_dnd_status)
         requestDndButton = findViewById(R.id.btn_request_dnd)
@@ -158,8 +166,15 @@ class RhythmActivity : AppCompatActivity() {
 
     private fun updateDndStatus() {
         val granted = isDndPermissionGranted()
-        dndStatusLabel.text = if (granted) "勿扰权限已开启" else "勿扰权限未开启"
-        requestDndButton.isEnabled = !granted
+        if (granted) {
+            dndStatusLabel.text = "✅ 勿扰权限已开启"
+            dndStatusLabel.setTextColor(getColor(R.color.course_public_required))
+            requestDndButton.isEnabled = false
+        } else {
+            dndStatusLabel.text = "⚠️ 勿扰权限未开启"
+            dndStatusLabel.setTextColor(getColor(R.color.error))
+            requestDndButton.isEnabled = true
+        }
     }
 
     private fun updateFocusSchedule(enabled: Boolean) {
@@ -178,6 +193,7 @@ class RhythmActivity : AppCompatActivity() {
 
     private fun renderWorkload(days: List<WorkloadDay>) {
         workloadContainer.removeAllViews()
+        renderWorkloadChart(days)
         if (days.isEmpty()) {
             workloadContainer.addView(buildHint("暂无数据"))
             return
@@ -189,22 +205,53 @@ class RhythmActivity : AppCompatActivity() {
     }
 
     private fun buildWorkloadItem(day: WorkloadDay, formatter: DateTimeFormatter): TextView {
-        val label = buildString {
-            append(formatWeekday(day.dayOfWeek))
-            append(" ")
-            append(day.date.format(formatter))
-            append(" · 课程 ")
-            append(day.coursePeriods)
-            append("节 · 作业 ")
-            append(day.taskCount)
-            append(" · 指数 ")
-            append(day.index)
+        val label = SpannableStringBuilder()
+        val headerStart = label.length
+        val header = "${formatWeekday(day.dayOfWeek)} ${day.date.format(formatter)}"
+        label.append(header)
+        label.setSpan(StyleSpan(android.graphics.Typeface.BOLD), headerStart, headerStart + header.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        label.append("  ")
+
+        fun appendMetric(icon: String, name: String, value: String, suffix: String = "  ") {
+            label.append(icon).append(" ")
+            val nameStart = label.length
+            label.append(name)
+            label.setSpan(RelativeSizeSpan(0.85f), nameStart, nameStart + name.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            label.setSpan(
+                ForegroundColorSpan(getColor(R.color.text_secondary)),
+                nameStart,
+                nameStart + name.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            label.append(" ").append(value).append(suffix)
         }
+
+        appendMetric("📚", "课程", "${day.coursePeriods}节")
+        appendMetric("📝", "作业", "${day.taskCount}")
+        appendMetric("⚡", "指数", "${day.index}", "")
         return TextView(this).apply {
             text = label
             textSize = 14f
             setTextColor(getColor(R.color.text_primary))
             setPadding(0, dpToPx(6), 0, dpToPx(6))
+        }
+    }
+
+    private fun renderWorkloadChart(days: List<WorkloadDay>) {
+        workloadChart.removeAllViews()
+        if (days.isEmpty()) return
+        val maxValue = days.maxOfOrNull { it.index }?.coerceAtLeast(1) ?: 1
+        val chartHeight = dpToPx(52)
+        days.forEach { day ->
+            val bar = View(this).apply {
+                setBackgroundColor(getColor(R.color.primary))
+            }
+            val height = (chartHeight * (day.index.toFloat() / maxValue.toFloat())).toInt().coerceAtLeast(dpToPx(6))
+            val params = LinearLayout.LayoutParams(0, height, 1f)
+            params.marginEnd = dpToPx(6)
+            params.marginStart = dpToPx(6)
+            bar.layoutParams = params
+            workloadChart.addView(bar)
         }
     }
 

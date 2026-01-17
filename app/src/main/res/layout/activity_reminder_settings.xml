@@ -27,11 +27,12 @@
             android:padding="16dp">
 
             <TextView
+                android:id="@+id/tv_reminder_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="提醒开关"
                 android:textStyle="bold"
-                android:textSize="16sp" />
+                android:textSize="18sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -46,10 +47,12 @@
                     android:layout_weight="1"
                     android:text="启用上课提醒" />
 
-                <Switch
+                <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/switch_reminder_enable"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    app:thumbTint="@color/switch_thumb"
+                    app:trackTint="@color/switch_track" />
             </LinearLayout>
 
             <LinearLayout
@@ -65,10 +68,12 @@
                     android:layout_weight="1"
                     android:text="震动提醒" />
 
-                <Switch
+                <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/switch_reminder_vibrate"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    app:thumbTint="@color/switch_thumb"
+                    app:trackTint="@color/switch_track" />
             </LinearLayout>
 
             <LinearLayout
@@ -95,11 +100,13 @@
                 android:layout_height="16dp" />
 
             <TextView
+                android:id="@+id/tv_type_reminder_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="课程类型提醒"
                 android:textStyle="bold"
-                android:textSize="16sp" />
+                android:textSize="16sp"
+                android:layout_marginTop="8dp" />
 
             <LinearLayout
                 android:id="@+id/container_type_reminders"
