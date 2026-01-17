@@ -65,9 +65,12 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import com.fjnu.schedule.util.CourseExcelImporter
+import com.fjnu.schedule.util.CourseImportHelper
+import com.fjnu.schedule.util.ConflictFilterResult
 import android.database.Cursor
 import android.provider.OpenableColumns
 import androidx.fragment.app.Fragment
+import com.fjnu.schedule.jw.JwSchoolSelectActivity
 import com.fjnu.schedule.widget.ScheduleWidgetProvider
 
 class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
@@ -295,7 +298,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 Toast.makeText(requireContext(), "当前学期未就绪，稍后重试", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val intent = Intent(requireContext(), JwImportActivity::class.java).apply {
+            val intent = Intent(requireContext(), JwSchoolSelectActivity::class.java).apply {
                 putExtra(JwImportActivity.EXTRA_SEMESTER_ID, currentSemesterId)
             }
             startActivity(intent)
@@ -1135,55 +1138,13 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         }
     }
 
-    private data class ConflictFilterResult(
-        val courses: List<Course>,
-        val conflictCount: Int,
-        val duplicateCount: Int
-    )
-
-    private fun filterConflicts(courses: List<Course>): ConflictFilterResult {
-        val accepted = mutableListOf<Course>()
-        val signatures = mutableSetOf<String>()
-        var conflictCount = 0
-        var duplicateCount = 0
-        courses.forEach { course ->
-            val signature = buildString {
-                append(course.name)
-                append('|')
-                append(course.dayOfWeek)
-                append('|')
-                append(course.startPeriod)
-                append('|')
-                append(course.endPeriod)
-                append('|')
-                append(course.weekPattern.joinToString(","))
-            }
-            if (!signatures.add(signature)) {
-                duplicateCount += 1
-                return@forEach
-            }
-            val conflict = accepted.any { existing ->
-                existing.dayOfWeek == course.dayOfWeek &&
-                    existing.weekPattern.any { it in course.weekPattern } &&
-                    existing.startPeriod <= course.endPeriod &&
-                    existing.endPeriod >= course.startPeriod
-            }
-            if (conflict) {
-                conflictCount += 1
-            } else {
-                accepted.add(course)
-            }
-        }
-        return ConflictFilterResult(accepted, conflictCount, duplicateCount)
-    }
-
     private fun confirmAndImportCourses(
         semesterId: Long,
         courses: List<Course>,
         skippedCount: Int,
         onBeforeReplace: (suspend () -> Unit)? = null
     ) {
-        val filtered = filterConflicts(courses)
+        val filtered = CourseImportHelper.filterConflicts(courses)
         if (filtered.conflictCount > 0 || filtered.duplicateCount > 0) {
             val message = "检测到${filtered.conflictCount}条时间冲突、${filtered.duplicateCount}条重复课程，将自动跳过冲突项。"
             AlertDialog.Builder(requireContext())
@@ -1213,7 +1174,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                     repository.replaceAll(semesterId, filtered.courses)
                 }
                 progressDialog.dismiss()
-                val message = "导入完成：成功${filtered.courses.size}条，跳过${skippedCount + filtered.conflictCount + filtered.duplicateCount}条"
+                val skipped = CourseImportHelper.totalSkipped(skippedCount, filtered)
+                val message = "导入完成：成功${filtered.courses.size}条，跳过${skipped}条"
                 Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                 ScheduleWidgetProvider.requestUpdate(requireContext())
             } catch (e: Exception) {

@@ -17,7 +17,23 @@
         app:navigationIcon="@drawable/ic_arrow_left"
         app:navigationIconTint="?attr/colorOnPrimary"
         app:title="教务课表导入"
-        app:titleTextColor="?attr/colorOnPrimary" />
+        app:titleTextColor="?attr/colorOnPrimary">
+
+        <TextView
+            android:id="@+id/tv_toolbar_school"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:ellipsize="marquee"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:maxWidth="160dp"
+            android:scrollHorizontally="true"
+            android:singleLine="true"
+            android:textColor="?attr/colorOnPrimary"
+            android:textSize="12sp" />
+    </com.google.android.material.appbar.MaterialToolbar>
 
     <FrameLayout
         android:layout_width="match_parent"

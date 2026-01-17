@@ -9,13 +9,18 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.fjnu.schedule.data.AppDatabase
 import com.fjnu.schedule.data.CourseRepository
+import com.fjnu.schedule.jw.JwSchool
+import com.fjnu.schedule.jw.JwSchoolCatalog
 import com.fjnu.schedule.model.Course
+import com.fjnu.schedule.util.ConflictFilterResult
+import com.fjnu.schedule.util.CourseImportHelper
 import com.fjnu.schedule.util.JwScheduleParser
 import com.fjnu.schedule.widget.ScheduleWidgetProvider
 import com.google.android.material.appbar.MaterialToolbar
@@ -30,7 +35,11 @@ class JwImportActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var importFab: FloatingActionButton
     private lateinit var repository: CourseRepository
+    private lateinit var school: JwSchool
     private var semesterId: Long = 0L
+
+    private var resolvedLoginUrl: String = ""
+    private var resolvedScheduleUrl: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,10 +52,24 @@ class JwImportActivity : AppCompatActivity() {
             return
         }
 
+        val schoolId = intent.getStringExtra(EXTRA_SCHOOL_ID)
+        val selected = JwSchoolCatalog.findById(schoolId)
+        if (selected == null) {
+            Toast.makeText(this, "未识别到学校信息", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+        school = selected
+        resolvedLoginUrl = school.loginUrl
+        resolvedScheduleUrl = resolveScheduleUrl(school)
+
         repository = CourseRepository(AppDatabase.getInstance(this).courseDao())
 
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar_jw_import)
         toolbar.setNavigationOnClickListener { finish() }
+        val schoolNameView = toolbar.findViewById<TextView>(R.id.tv_toolbar_school)
+        schoolNameView.text = school.name
+        schoolNameView.isSelected = true
 
         webView = findViewById(R.id.webview_jw)
         progressBar = findViewById(R.id.progress_loading)
@@ -54,11 +77,13 @@ class JwImportActivity : AppCompatActivity() {
 
         setupWebView()
 
-        importFab.setOnClickListener {
-            handleImport()
-        }
+        importFab.setOnClickListener { handleImport() }
 
-        webView.loadUrl(LOGIN_URL)
+        if (resolvedLoginUrl.isNotBlank()) {
+            webView.loadUrl(resolvedLoginUrl)
+        } else {
+            Toast.makeText(this, "暂无可用的登录地址", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onBackPressed() {
@@ -148,16 +173,13 @@ class JwImportActivity : AppCompatActivity() {
     private fun showScheduleGuideDialog() {
         AlertDialog.Builder(this)
             .setTitle("进入课表页面")
-            .setMessage("请先在教务系统中进入个人课表页面，再点击导入。是否前往课表页？")
-            .setPositiveButton("前往课表") { _, _ ->
-                webView.loadUrl(SCHEDULE_URL)
-            }
-            .setNegativeButton("取消", null)
+            .setMessage("请先在教务系统中进入个人课表页面，再点击导入。")
+            .setPositiveButton("知道了", null)
             .show()
     }
 
     private fun confirmAndImportCourses(courses: List<Course>, skippedCount: Int) {
-        val filtered = filterConflicts(courses)
+        val filtered = CourseImportHelper.filterConflicts(courses)
         if (filtered.conflictCount > 0 || filtered.duplicateCount > 0) {
             val message = "检测到${filtered.conflictCount}条时间冲突、${filtered.duplicateCount}条重复课程，将自动跳过冲突项。"
             AlertDialog.Builder(this)
@@ -181,57 +203,17 @@ class JwImportActivity : AppCompatActivity() {
                     repository.replaceAll(semesterId, filtered.courses)
                 }
                 progressDialog.dismiss()
-                val message = "导入完成：成功${filtered.courses.size}条，跳过${skippedCount + filtered.conflictCount + filtered.duplicateCount}条"
+                val skipped = CourseImportHelper.totalSkipped(skippedCount, filtered)
+                val message = "导入完成：成功${filtered.courses.size}条，跳过${skipped}条"
                 Toast.makeText(this@JwImportActivity, message, Toast.LENGTH_LONG).show()
                 ScheduleWidgetProvider.requestUpdate(this@JwImportActivity)
                 setResult(RESULT_OK)
+                finish()
             } catch (e: Exception) {
                 progressDialog.dismiss()
                 Toast.makeText(this@JwImportActivity, "导入失败：${e.message ?: "未知错误"}", Toast.LENGTH_LONG).show()
             }
         }
-    }
-
-    private data class ConflictFilterResult(
-        val courses: List<Course>,
-        val conflictCount: Int,
-        val duplicateCount: Int
-    )
-
-    private fun filterConflicts(courses: List<Course>): ConflictFilterResult {
-        val accepted = mutableListOf<Course>()
-        val signatures = mutableSetOf<String>()
-        var conflictCount = 0
-        var duplicateCount = 0
-        courses.forEach { course ->
-            val signature = buildString {
-                append(course.name)
-                append('|')
-                append(course.dayOfWeek)
-                append('|')
-                append(course.startPeriod)
-                append('|')
-                append(course.endPeriod)
-                append('|')
-                append(course.weekPattern.joinToString(","))
-            }
-            if (!signatures.add(signature)) {
-                duplicateCount += 1
-                return@forEach
-            }
-            val conflict = accepted.any { existing ->
-                existing.dayOfWeek == course.dayOfWeek &&
-                    existing.weekPattern.any { it in course.weekPattern } &&
-                    existing.startPeriod <= course.endPeriod &&
-                    existing.endPeriod >= course.startPeriod
-            }
-            if (conflict) {
-                conflictCount += 1
-            } else {
-                accepted.add(course)
-            }
-        }
-        return ConflictFilterResult(accepted, conflictCount, duplicateCount)
     }
 
     private fun showImportProgress(): AlertDialog {
@@ -245,12 +227,29 @@ class JwImportActivity : AppCompatActivity() {
 
     private fun isLoginPage(url: String?): Boolean {
         if (url.isNullOrBlank()) return true
-        return url.contains("login_slogin") || url.contains("login")
+        if (url.contains("login", ignoreCase = true)) return true
+        val loginBase = resolvedLoginUrl.substringBefore("?")
+        return loginBase.isNotBlank() && url.startsWith(loginBase, ignoreCase = true)
     }
 
     private fun isSchedulePage(url: String?): Boolean {
         if (url.isNullOrBlank()) return false
-        return url.contains("xskbcx_cxXskbcxIndex") || url.contains("/kbcx/")
+        if (url.contains("xskbcx", ignoreCase = true) || url.contains("/kbcx/")) return true
+        val scheduleBase = resolvedScheduleUrl.substringBefore("?")
+        return scheduleBase.isNotBlank() && url.startsWith(scheduleBase, ignoreCase = true)
+    }
+
+    private fun resolveScheduleUrl(school: JwSchool): String {
+        if (school.scheduleUrl.isNotBlank()) return school.scheduleUrl
+        val loginUrl = school.loginUrl
+        if (loginUrl.isBlank()) return ""
+        val marker = "/xtgl/"
+        val base = if (loginUrl.contains(marker)) {
+            loginUrl.substringBefore(marker).trimEnd('/') + "/"
+        } else {
+            loginUrl.substringBeforeLast("/").trimEnd('/') + "/"
+        }
+        return base + "kbcx/xskbcx_cxXskbcxIndex.html?gnmkdm=N2151&layout=default"
     }
 
     private fun decodeJsResult(value: String?): String {
@@ -270,11 +269,7 @@ class JwImportActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_SEMESTER_ID = "extra_semester_id"
-
-        private const val LOGIN_URL =
-            "https://jwglxt.fjnu.edu.cn/jwglxt/xtgl/login_slogin.html"
-        private const val SCHEDULE_URL =
-            "https://jwglxt.fjnu.edu.cn/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html?gnmkdm=N2151&layout=default"
+        const val EXTRA_SCHOOL_ID = "extra_school_id"
 
         private val EXTRACT_SCRIPT = """
             (function() {

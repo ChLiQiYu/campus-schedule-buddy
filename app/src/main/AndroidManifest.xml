@@ -70,6 +70,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".jw.JwSchoolSelectActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".JwImportActivity"
             android:exported="false" />
 
