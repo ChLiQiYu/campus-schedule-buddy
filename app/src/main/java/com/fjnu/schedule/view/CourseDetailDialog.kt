@@ -29,8 +29,10 @@ class CourseDetailDialog(
         setContentView(R.layout.dialog_course_detail)
 
         // 设置对话框样式
+        val screenWidth = context.resources.displayMetrics.widthPixels
+        val dialogWidth = (screenWidth * 0.9f).toInt()
         window?.setLayout(
-            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            dialogWidth,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         )
 
@@ -96,14 +98,9 @@ class CourseDetailDialog(
         // 设置周数模式
         weekPatternTextView.text = formatWeekPattern(course.weekPattern)
 
-        // 设置颜色显示
-        val (colorName, colorInt) = getCourseColorInfo(course.color)
-        colorValue.text = colorName
-        val colorDrawable = GradientDrawable().apply {
-            setColor(colorInt)
-            cornerRadius = dpToPx(10).toFloat()
-        }
-        colorValue.background = colorDrawable
+        // 颜色字段隐藏
+        colorLabel.visibility = View.GONE
+        colorValue.visibility = View.GONE
 
         // 设置备注
         if (course.note.isNullOrEmpty()) {

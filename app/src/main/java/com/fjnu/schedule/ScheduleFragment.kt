@@ -419,7 +419,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
      * 根据系统主题更新背景色
      */
     private fun updateBackgroundColor() {
-        val backgroundColor = ContextCompat.getColor(requireContext(), R.color.background)
+        val backgroundColor = ContextCompat.getColor(requireContext(), android.R.color.white)
         scheduleContainer.setBackgroundColor(backgroundColor)
     }
 
@@ -431,7 +431,6 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             val rowHeight = getPeriodRowHeight()
             val metrics = calculateGridMetrics(container.width, dayCount)
             val timeColumnWidth = metrics.timeColumnWidth
-            val lineColor = ContextCompat.getColor(requireContext(), R.color.grid_line)
             val timeTextColor = ContextCompat.getColor(requireContext(), R.color.text_secondary)
 
             val timeMap = periodTimes.associateBy { it.period }
@@ -479,35 +478,6 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 container.addView(timeContainer)
             }
 
-            // 添加水平分隔线
-            for (i in 1..periodCount) {
-                val divider = View(requireContext()).apply {
-                    setBackgroundColor(lineColor)
-                }
-                val params = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    dpToPx(1)
-                )
-                params.topMargin = rowHeight * i
-                divider.layoutParams = params
-                container.addView(divider)
-            }
-
-            // 添加垂直分隔线
-            val totalHeight = rowHeight * periodCount
-            for (i in 0..dayCount) {
-                val divider = View(requireContext()).apply {
-                    setBackgroundColor(lineColor)
-                }
-                val params = FrameLayout.LayoutParams(
-                    dpToPx(1),
-                    totalHeight
-                )
-                params.leftMargin =
-                    metrics.innerPadding + timeColumnWidth + metrics.dayColumnWidth * i
-                divider.layoutParams = params
-                container.addView(divider)
-            }
         }
     }
 
