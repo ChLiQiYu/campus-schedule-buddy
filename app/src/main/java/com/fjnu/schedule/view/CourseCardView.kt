@@ -47,7 +47,7 @@ class CourseCardView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
-        gravity = Gravity.START or Gravity.CENTER_VERTICAL // 课程项内部居中对齐
+        gravity = Gravity.CENTER // 课程项内部居中对齐
         // 优化内边距，确保在小屏幕上也能显示足够的文本
         val horizontalPadding = dpToPx(6)
         val verticalPadding = dpToPx(8)
@@ -58,12 +58,12 @@ class CourseCardView @JvmOverloads constructor(
 
         // 优化课程名称显示 - 每行3个中文，最多4行
         courseNameTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(8.0f, true, 3, 4)
+            setupForChineseText(10.0f, true, 3, 4)
         }
 
         // 优化教师姓名显示 - 每行3个中文，最多2行
         teacherTextView = ChineseOptimizedTextView(context).apply {
-            setupForChineseText(8.0f, false, 3, 2)
+            setupForChineseText(9.0f, false, 3, 2)
         }
 
         // 优化地点信息显示 - 每行3个中文，最多2行
@@ -214,7 +214,7 @@ class CourseCardView @JvmOverloads constructor(
         }
         val color = course.color ?: fallbackColor
 
-        val corner = dpToPx(18).toFloat()
+        val corner = dpToPx(10).toFloat()
         val strokeWidth = if (isCurrentCourse) dpToPx(2) else dpToPx(1)
         val strokeColor = if (isCurrentCourse) {
             ContextCompat.getColor(context, R.color.card_border_current)
@@ -382,7 +382,7 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
             null,
             if (bold) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL
         )
-        gravity = Gravity.START or Gravity.CENTER_VERTICAL // 课程项内部居中对齐
+        gravity = Gravity.CENTER // 课程项内部居中对齐
         baseTextSizePx = textSize
 
         // 使用系统省略号并限制最大行数

@@ -126,7 +126,8 @@
             android:layout_height="match_parent"
             android:layout_weight="0"
             android:gravity="center"
-            android:text="时间"
+            android:text="时\n间"
+            android:textSize="12sp"
             android:textColor="?android:attr/textColorSecondary"
             android:textStyle="bold" />
 

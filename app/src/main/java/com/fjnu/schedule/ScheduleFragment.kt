@@ -31,6 +31,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -444,20 +445,38 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 } else {
                     fallbackTimes[period] ?: ("" to "")
                 }
-                val timeLabel = TextView(requireContext()).apply {
-                    text = "第${period}节\n$startTime\n$endTime"
-                    textSize = 10f
-                    setLineSpacing(0f, 1.1f)
+
+                // 创建垂直线性布局容器
+                val timeContainer = LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
+//                    setBackgroundColor(Color.RED) // 红色背景，测试用
+                    layoutParams = FrameLayout.LayoutParams(timeColumnWidth, rowHeight).apply {
+                        topMargin = rowHeight * (period - 1)
+                        leftMargin = metrics.innerPadding
+                    }
+                }
+
+                // 节次编号文本
+                val periodText = TextView(requireContext()).apply {
+                    text = "$period"
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                }
+
+                // 时间段文本
+                val timeRangeText = TextView(requireContext()).apply {
+                    text = "$startTime\n$endTime"
+                    textSize = 8f
+                    gravity = Gravity.CENTER
+                    setLineSpacing(0f, 1.0f)
                     setTextColor(timeTextColor)
                 }
 
-                val params = FrameLayout.LayoutParams(timeColumnWidth, rowHeight)
-                params.topMargin = rowHeight * (period - 1)
-                params.leftMargin = metrics.innerPadding
-                timeLabel.layoutParams = params
-
-                container.addView(timeLabel)
+                // 添加到容器中
+                timeContainer.addView(periodText)
+                timeContainer.addView(timeRangeText)
+                container.addView(timeContainer)
             }
 
             // 添加水平分隔线
@@ -1770,7 +1789,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     private fun openMediaAttachment(attachment: CourseAttachmentEntity) {
         val uriString = attachment.uri ?: return
-        val uri = Uri.parse(uriString)
+        val uri = uriString.toUri()
         val mimeType = requireContext().contentResolver.getType(uri) ?: "image/*"
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mimeType)
@@ -1785,7 +1804,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     private fun openPdfAttachment(attachment: CourseAttachmentEntity) {
         val uriString = attachment.uri ?: return
-        val uri = Uri.parse(uriString)
+        val uri = uriString.toUri()
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/pdf")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -1802,7 +1821,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             Toast.makeText(requireContext(), "链接地址无效", Toast.LENGTH_SHORT).show()
             return
         }
-        val uri = Uri.parse(url)
+        val uri = url.toUri()
         val intent = Intent(Intent.ACTION_VIEW, uri)
         try {
             startActivity(intent)
@@ -1887,11 +1906,11 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     )
 
     private fun calculateGridMetrics(containerWidth: Int, dayCount: Int): GridMetrics {
-        val innerPadding = dpToPx(4)
-        val minTimeWidth = dpToPx(42)
-        val maxTimeWidth = dpToPx(56)
+        val innerPadding = dpToPx(0)
+        val minTimeWidth = dpToPx(24)
+        val maxTimeWidth = dpToPx(28)
         val availableWidth = (containerWidth - innerPadding * 2).coerceAtLeast(0)
-        val timeColumnWidth = (availableWidth * 0.13f).toInt().coerceIn(minTimeWidth, maxTimeWidth)
+        val timeColumnWidth = (availableWidth * 0.08f).toInt().coerceIn(minTimeWidth, maxTimeWidth)
         val safeDayCount = dayCount.coerceAtLeast(1)
         val dayColumnWidth = ((availableWidth - timeColumnWidth) / safeDayCount.toFloat())
             .toInt()
