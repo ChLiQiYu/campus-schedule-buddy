@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.Gravity
@@ -31,7 +32,7 @@ class CourseCardView @JvmOverloads constructor(
     private val locationTextView: ChineseOptimizedTextView
     private val periodTextView: ChineseOptimizedTextView
     private val taskAlertTextView: AppCompatTextView
-    private var backgroundDrawable: GradientDrawable? = null
+    private var fillDrawable: GradientDrawable? = null
     private var isCurrentCourse = false
     private val recordTextPaint = Paint().apply {
         isAntiAlias = true
@@ -82,7 +83,14 @@ class CourseCardView @JvmOverloads constructor(
             maxLines = 3
             isSingleLine = false
             ellipsize = null
-            setTextColor(ContextCompat.getColor(context, R.color.error))
+            setTextColor(Color.parseColor("#FFE5484D"))
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            val badge = GradientDrawable().apply {
+                cornerRadius = dpToPx(8).toFloat()
+                setColor(Color.parseColor("#22FFFFFF"))
+            }
+            background = badge
+            setPadding(dpToPx(6), dpToPx(2), dpToPx(6), dpToPx(2))
         }
 
         // 添加子视图
@@ -206,22 +214,37 @@ class CourseCardView @JvmOverloads constructor(
         }
         val color = course.color ?: fallbackColor
 
-        // 创建带圆角和阴影的背景
+        val corner = dpToPx(18).toFloat()
         val strokeWidth = if (isCurrentCourse) dpToPx(2) else dpToPx(1)
         val strokeColor = if (isCurrentCourse) {
             ContextCompat.getColor(context, R.color.card_border_current)
         } else {
             ContextCompat.getColor(context, R.color.card_border)
         }
-        val drawable = GradientDrawable().apply {
+
+        val lightShadow = GradientDrawable().apply {
+            setColor(lightenColor(color, 0.22f))
+            cornerRadius = corner
+        }
+        val darkShadow = GradientDrawable().apply {
+            setColor(darkenColor(color, 0.18f))
+            cornerRadius = corner
+        }
+        val main = GradientDrawable().apply {
             setColor(color)
-            cornerRadius = dpToPx(14).toFloat()
+            cornerRadius = corner
             setStroke(strokeWidth, strokeColor)
         }
 
-        backgroundDrawable = drawable
-        background = drawable
-        elevation = dpToPx(3).toFloat()
+        val layer = LayerDrawable(arrayOf(darkShadow, lightShadow, main))
+        val inset = dpToPx(2)
+        layer.setLayerInset(0, inset, inset + dpToPx(2), 0, 0)
+        layer.setLayerInset(1, 0, 0, inset + dpToPx(2), inset + dpToPx(2))
+        layer.setLayerInset(2, inset, inset, inset, inset)
+
+        fillDrawable = main
+        background = layer
+        elevation = dpToPx(2).toFloat()
     }
 
     private fun dpToPx(dp: Int): Int {
@@ -273,7 +296,7 @@ class CourseCardView @JvmOverloads constructor(
         isCurrentCourse = isCurrent
         if (isCurrent) {
             elevation = dpToPx(10).toFloat()
-            backgroundDrawable?.setStroke(
+            fillDrawable?.setStroke(
                 dpToPx(2),
                 ContextCompat.getColor(context, R.color.card_border_current)
             )
@@ -284,7 +307,7 @@ class CourseCardView @JvmOverloads constructor(
                 .start()
         } else {
             elevation = dpToPx(3).toFloat()
-            backgroundDrawable?.setStroke(
+            fillDrawable?.setStroke(
                 dpToPx(1),
                 ContextCompat.getColor(context, R.color.card_border)
             )
@@ -295,6 +318,21 @@ class CourseCardView @JvmOverloads constructor(
                 .start()
         }
         invalidate()
+    }
+
+    private fun lightenColor(color: Int, amount: Float): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        hsv[2] = (hsv[2] + (1f - hsv[2]) * amount).coerceIn(0f, 1f)
+        hsv[1] = (hsv[1] * (1f - amount * 0.15f)).coerceIn(0f, 1f)
+        return Color.HSVToColor(hsv)
+    }
+
+    private fun darkenColor(color: Int, amount: Float): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        hsv[2] = (hsv[2] * (1f - amount)).coerceIn(0f, 1f)
+        return Color.HSVToColor(hsv)
     }
 
 }

@@ -4,23 +4,23 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- 课程类型色彩映射（夜间更柔和） -->
-    <color name="course_major_required">#FF5E6FA6</color>
-    <color name="course_major_elective">#FF7E6A8F</color>
-    <color name="course_public_required">#FFB77A93</color>
-    <color name="course_experiment">#FF5F8F88</color>
-    <color name="course_pe">#FF5D8AA6</color>
+    <color name="course_major_required">#FF5B61D6</color>
+    <color name="course_major_elective">#FFDD7A2F</color>
+    <color name="course_public_required">#FF2FAE6F</color>
+    <color name="course_experiment">#FF1BA2B8</color>
+    <color name="course_pe">#FFDC4A6E</color>
 
     <!-- 主题色（深色模式） -->
-    <color name="primary">#FF7E91D6</color>
+    <color name="primary">#FF5B61D6</color>
     <color name="on_primary">#FF121418</color>
-    <color name="secondary">#FF9A7BB7</color>
+    <color name="secondary">#FFDD7A2F</color>
     <color name="on_secondary">#FF151318</color>
     <color name="background">#FF1B1D20</color>
     <color name="on_background">#FFF1F3F5</color>
     <color name="surface">#FF23262A</color>
     <color name="on_surface">#FFF1F3F5</color>
     <color name="outline">#FF2F343A</color>
-    <color name="error">#FFB86363</color>
+    <color name="error">#FFEF6666</color>
     <color name="on_error">#FF1B1010</color>
 
     <!-- 深色模式背景色 -->

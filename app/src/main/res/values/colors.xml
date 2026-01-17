@@ -4,23 +4,23 @@
     <color name="white">#FFFFFFFF</color>
     
     <!-- 课程类型色彩映射 -->
-    <color name="course_major_required">#FF6D8AD6</color> <!-- 柔和蓝：重要/严肃 -->
-    <color name="course_major_elective">#FF9A7BB7</color> <!-- 柔和紫：探索/兴趣 -->
-    <color name="course_public_required">#FFD98AA8</color> <!-- 柔和粉：基础/普及 -->
-    <color name="course_experiment">#FF7DB8B1</color> <!-- 柔和青绿：实践/动手 -->
-    <color name="course_pe">#FF7FB7D6</color> <!-- 柔和天蓝：活力/放松 -->
+    <color name="course_major_required">#FF4F46E5</color> <!-- 鲜亮靛蓝 -->
+    <color name="course_major_elective">#FFF97316</color> <!-- 鲜亮橙 -->
+    <color name="course_public_required">#FF22C55E</color> <!-- 鲜亮绿 -->
+    <color name="course_experiment">#FF06B6D4</color> <!-- 鲜亮青 -->
+    <color name="course_pe">#FFF43F5E</color> <!-- 鲜亮玫红 -->
 
     <!-- 主题色（浅色模式） -->
-    <color name="primary">#FF6D8AD6</color>
+    <color name="primary">#FF4F46E5</color>
     <color name="on_primary">#FFF8FAFF</color>
-    <color name="secondary">#FF9A7BB7</color>
+    <color name="secondary">#FFF97316</color>
     <color name="on_secondary">#FFF8F6FB</color>
-    <color name="background">#FFF3F5F7</color>
+    <color name="background">#FFF4F6FF</color>
     <color name="on_background">#FF1B1F24</color>
     <color name="surface">#FFFFFFFF</color>
     <color name="on_surface">#FF1B1F24</color>
     <color name="outline">#FFDDE2E7</color>
-    <color name="error">#FFD97979</color>
+    <color name="error">#FFEF4444</color>
     <color name="on_error">#FFFDF6F6</color>
     
     <!-- 深色模式背景色 -->
