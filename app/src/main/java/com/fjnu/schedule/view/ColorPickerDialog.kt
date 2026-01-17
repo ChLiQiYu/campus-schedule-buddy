@@ -7,9 +7,10 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import android.widget.EditText
 import com.fjnu.schedule.R
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.bottomsheet.BottomSheetDialog
 
 object ColorPickerDialog {
     fun show(context: Context, initialColor: Int, onSelected: (Int) -> Unit) {
@@ -18,8 +19,10 @@ object ColorPickerDialog {
         val hueView = view.findViewById<HueBarView>(R.id.view_hue_bar)
         val preview = view.findViewById<View>(R.id.view_color_preview)
         val hexInput = view.findViewById<EditText>(R.id.et_hex_color)
+        val btnCancel = view.findViewById<Button>(R.id.btn_color_cancel)
+        val btnSave = view.findViewById<Button>(R.id.btn_color_save)
 
-        val startColor = Color.RED
+        val startColor = initialColor
         val hsv = FloatArray(3)
         Color.colorToHSV(startColor, hsv)
         paletteView.hue = hsv[0]
@@ -72,14 +75,14 @@ object ColorPickerDialog {
             }
         })
 
-        MaterialAlertDialogBuilder(context)
-            .setTitle("选择颜色")
-            .setView(view)
-            .setNegativeButton("取消", null)
-            .setPositiveButton("保存") { _, _ ->
-                onSelected(currentColor())
-            }
-            .show()
+        val dialog = BottomSheetDialog(context)
+        dialog.setContentView(view)
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnSave.setOnClickListener {
+            onSelected(currentColor())
+            dialog.dismiss()
+        }
+        dialog.show()
     }
 
     private fun parseHexColor(input: String): Int? {

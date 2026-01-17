@@ -4,11 +4,11 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- 课程类型色彩映射（夜间更柔和） -->
-    <color name="course_major_required">#FF6F7AC5</color>
-    <color name="course_major_elective">#FFD2A06A</color>
-    <color name="course_public_required">#FF6BB48E</color>
-    <color name="course_experiment">#FF6AA7B8</color>
-    <color name="course_pe">#FFD08AA2</color>
+    <color name="course_major_required">#FF4FA08A</color>
+    <color name="course_major_elective">#FFB4C07A</color>
+    <color name="course_public_required">#FF76C79A</color>
+    <color name="course_experiment">#FF6DB3B9</color>
+    <color name="course_pe">#FFB1D5B6</color>
 
     <!-- 主题色（深色模式） -->
     <color name="primary">#FF6BB48E</color>

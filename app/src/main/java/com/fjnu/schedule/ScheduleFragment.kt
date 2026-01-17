@@ -77,7 +77,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     private lateinit var tvCurrentWeek: TextView
     private lateinit var btnPreviousWeek: ImageButton
     private lateinit var btnNextWeek: ImageButton
-    private lateinit var btnMore: ImageButton
+    private lateinit var btnMore: com.google.android.material.button.MaterialButton
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var fabAddCourse: FloatingActionButton
@@ -586,9 +586,9 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val jwImportButton = sheetView.findViewById<Button>(R.id.btn_jw_import_sheet)
         val importButton = sheetView.findViewById<Button>(R.id.btn_import_sheet)
         val exportButton = sheetView.findViewById<Button>(R.id.btn_export_sheet)
-        val groupSyncButton = sheetView.findViewById<Button>(R.id.btn_group_sync_sheet)
-        val rhythmButton = sheetView.findViewById<Button>(R.id.btn_rhythm_sheet)
-        val settingsButton = sheetView.findViewById<Button>(R.id.btn_open_settings_sheet)
+//        val groupSyncButton = sheetView.findViewById<Button>(R.id.btn_group_sync_sheet)
+//        val rhythmButton = sheetView.findViewById<Button>(R.id.btn_rhythm_sheet)
+//        val settingsButton = sheetView.findViewById<Button>(R.id.btn_open_settings_sheet)
 
         val checkedId = when (viewMode) {
             ViewMode.DAY -> btnDay.id
@@ -668,20 +668,20 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             launchExportPicker()
         }
 
-        groupSyncButton.setOnClickListener {
-            dialog.dismiss()
-            startActivity(Intent(requireContext(), GroupSyncActivity::class.java))
-        }
-
-        rhythmButton.setOnClickListener {
-            dialog.dismiss()
-            startActivity(Intent(requireContext(), RhythmActivity::class.java))
-        }
-
-        settingsButton.setOnClickListener {
-            dialog.dismiss()
-            startActivity(Intent(requireContext(), SettingsActivity::class.java))
-        }
+//        groupSyncButton.setOnClickListener {
+//            dialog.dismiss()
+//            startActivity(Intent(requireContext(), GroupSyncActivity::class.java))
+//        }
+//
+//        rhythmButton.setOnClickListener {
+//            dialog.dismiss()
+//            startActivity(Intent(requireContext(), RhythmActivity::class.java))
+//        }
+//
+//        settingsButton.setOnClickListener {
+//            dialog.dismiss()
+//            startActivity(Intent(requireContext(), SettingsActivity::class.java))
+//        }
 
         dialog.setContentView(sheetView)
         dialog.show()

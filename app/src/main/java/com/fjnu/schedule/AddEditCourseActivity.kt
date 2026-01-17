@@ -172,6 +172,7 @@ class AddEditCourseActivity : AppCompatActivity() {
         btnCancel.setOnClickListener { finish() }
         etWeeks.setOnClickListener { showWeekPicker() }
         btnCustomColor.setOnClickListener { openCustomColorPicker() }
+        colorPreview.setOnClickListener { openCustomColorPicker() }
 
         spCourseColor.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
@@ -183,7 +184,7 @@ class AddEditCourseActivity : AppCompatActivity() {
                 if (isColorSpinnerUpdating) return
                 val selected = colorValues.getOrNull(position)
                 if (selected == customColorSentinel) {
-                    openCustomColorPicker()
+                    updateColorPreview(customColorValue)
                 } else {
                     updateColorPreview(selected)
                 }

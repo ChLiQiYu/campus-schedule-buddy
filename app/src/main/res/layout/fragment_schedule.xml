@@ -91,16 +91,23 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <ImageButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_more"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:backgroundTint="?attr/colorPrimary"
                 android:contentDescription="更多"
-                android:padding="8dp"
-                android:src="@drawable/ic_more"
-                app:tint="?attr/colorOnPrimary" />
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text=""
+                android:textColor="?attr/colorOnPrimary"
+                android:textSize="12sp"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_arrow_down"
+                app:iconGravity="textEnd"
+                app:iconPadding="4dp"
+                app:iconTint="?attr/colorOnPrimary" />
         </LinearLayout>
 
     </com.google.android.material.appbar.MaterialToolbar>

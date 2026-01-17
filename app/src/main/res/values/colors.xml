@@ -4,11 +4,11 @@
     <color name="white">#FFFFFFFF</color>
     
     <!-- 课程类型色彩映射 -->
-    <color name="course_major_required">#FF5B6CCB</color> <!-- 柔和靛蓝 -->
-    <color name="course_major_elective">#FFE39A5C</color> <!-- 柔和橙 -->
-    <color name="course_public_required">#FF5FBF8B</color> <!-- 柔和绿 -->
-    <color name="course_experiment">#FF5FB3C6</color> <!-- 柔和青 -->
-    <color name="course_pe">#FFE1829B</color> <!-- 柔和玫红 -->
+    <color name="course_major_required">#FF2F7D6A</color> <!-- 深青绿 -->
+    <color name="course_major_elective">#FF8AA86A</color> <!-- 柔和橄榄 -->
+    <color name="course_public_required">#FF5FAF8B</color> <!-- 柔和绿 -->
+    <color name="course_experiment">#FF5B9EA7</color> <!-- 柔和青蓝 -->
+    <color name="course_pe">#FF9BC8A3</color> <!-- 柔和薄荷 -->
 
     <!-- 主题色（浅色模式） -->
     <color name="primary">#FF5FBF8B</color>

@@ -5,6 +5,15 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <TextView
+        android:id="@+id/tv_color_picker_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="选择颜色"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -47,6 +56,33 @@
             android:inputType="text"
             android:maxLines="1"
             android:text="#FF0000" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_color_cancel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="取消"
+            android:backgroundTint="@color/outline"
+            android:textColor="@color/text_primary" />
+
+        <Button
+            android:id="@+id/btn_color_save"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="保存"
+            android:backgroundTint="@color/primary"
+            android:textColor="@color/on_primary" />
     </LinearLayout>
 
 </LinearLayout>
