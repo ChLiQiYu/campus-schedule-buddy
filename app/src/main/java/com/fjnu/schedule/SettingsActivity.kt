@@ -83,7 +83,10 @@ class SettingsActivity : AppCompatActivity() {
 
         val database = AppDatabase.getInstance(this)
         val repository = SettingsRepository(database.settingsDao(), database.semesterDao())
-        viewModel = ViewModelProvider(this, SettingsViewModelFactory(repository))[SettingsViewModel::class.java]
+        viewModel = ViewModelProvider(
+            this,
+            SettingsViewModelFactory(repository)
+        )[SettingsViewModel::class.java]
         viewModel.ensureDefaults()
 
         setupTemplateButtons()
@@ -118,7 +121,8 @@ class SettingsActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             if (periodCount > MAX_PERIOD_COUNT) {
-                Toast.makeText(this, "每日节数建议不超过$MAX_PERIOD_COUNT", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "每日节数建议不超过$MAX_PERIOD_COUNT", Toast.LENGTH_SHORT)
+                    .show()
                 return@setOnClickListener
             }
             if (periodMinutes == null || periodMinutes <= 0) {
@@ -134,7 +138,8 @@ class SettingsActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             if (totalWeeks > MAX_TOTAL_WEEKS) {
-                Toast.makeText(this, "学期周数建议不超过$MAX_TOTAL_WEEKS", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "学期周数建议不超过$MAX_TOTAL_WEEKS", Toast.LENGTH_SHORT)
+                    .show()
                 return@setOnClickListener
             }
 
@@ -147,7 +152,8 @@ class SettingsActivity : AppCompatActivity() {
             )
             viewModel.updateScheduleSettings(settings)
 
-            val startTime = latestPeriodTimes.firstOrNull { it.period == 1 }?.startTime ?: DEFAULT_START_TIME
+            val startTime =
+                latestPeriodTimes.firstOrNull { it.period == 1 }?.startTime ?: DEFAULT_START_TIME
             val generated = generatePeriodTimes(periodCount, periodMinutes, breakMinutes, startTime)
             viewModel.updatePeriodTimes(generated)
             Toast.makeText(this, "已应用上课时间设置", Toast.LENGTH_SHORT).show()
@@ -202,7 +208,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun renderPeriodTimes(times: List<PeriodTimeEntity>) {
         periodContainer.removeAllViews()
-        val displayTimes = if (times.isEmpty()) {
+        val displayTimes = times.ifEmpty {
             val settings = latestScheduleSettings
             if (settings != null) {
                 generatePeriodTimes(
@@ -214,8 +220,6 @@ class SettingsActivity : AppCompatActivity() {
             } else {
                 default45Template()
             }
-        } else {
-            times
         }
         displayTimes.forEach { period ->
             val row = layoutInflater.inflate(R.layout.item_period_time, periodContainer, false)
@@ -338,10 +342,11 @@ class SettingsActivity : AppCompatActivity() {
         }
         val appWidgetManager = getSystemService(AppWidgetManager::class.java)
         if (appWidgetManager == null || !appWidgetManager.isRequestPinAppWidgetSupported) {
-            Toast.makeText(this, "当前启动器不支持一键添加，请手动添加小组件", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "当前启动器不支持一键添加，请手动添加小组件", Toast.LENGTH_LONG)
+                .show()
             return
         }
-        val provider = ComponentName(this, com.fjnu.schedule.widget.ScheduleWidgetProvider::class.java)
+        val provider = ComponentName(this, ScheduleWidgetProvider::class.java)
         val requested = appWidgetManager.requestPinAppWidget(provider, null, null)
         if (!requested) {
             Toast.makeText(this, "无法添加小组件，请稍后重试", Toast.LENGTH_SHORT).show()

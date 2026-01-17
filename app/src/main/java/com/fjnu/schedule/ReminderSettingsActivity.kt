@@ -53,7 +53,7 @@ class ReminderSettingsActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_reminder_settings)
 
-        val root = findViewById<android.widget.LinearLayout>(R.id.reminder_root)
+        val root = findViewById<LinearLayout>(R.id.reminder_root)
         val initialTop = root.paddingTop
         val initialBottom = root.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->

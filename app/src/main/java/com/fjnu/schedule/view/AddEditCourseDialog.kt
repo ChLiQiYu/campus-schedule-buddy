@@ -57,8 +57,8 @@ class AddEditCourseDialog(
 
         // 设置对话框样式
         window?.setLayout(
-            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
         )
 
         initViews()
@@ -191,7 +191,7 @@ class AddEditCourseDialog(
         spCourseColor.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: android.widget.AdapterView<*>?,
-                view: android.view.View?,
+                view: View?,
                 position: Int,
                 id: Long
             ) {
@@ -235,7 +235,7 @@ class AddEditCourseDialog(
 
         if (startPeriod > endPeriod) {
             // 显示错误信息
-            android.widget.Toast.makeText(context, "开始节次不能晚于结束节次", android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "开始节次不能晚于结束节次", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -265,14 +265,14 @@ class AddEditCourseDialog(
             id = courseId,
             semesterId = course?.semesterId ?: semesterId,
             name = name,
-            teacher = if (teacher.isNotEmpty()) teacher else null,
-            location = if (location.isNotEmpty()) location else null,
+            teacher = teacher.ifEmpty { null },
+            location = location.ifEmpty { null },
             type = type,
             dayOfWeek = dayOfWeek,
             startPeriod = startPeriod,
             endPeriod = endPeriod,
             weekPattern = weekPattern,
-            note = if (note.isNotEmpty()) note else null,
+            note = note.ifEmpty { null },
             color = color
         )
 

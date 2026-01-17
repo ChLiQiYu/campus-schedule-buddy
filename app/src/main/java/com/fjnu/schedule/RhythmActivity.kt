@@ -3,10 +3,9 @@ package com.fjnu.schedule
 import android.app.NotificationManager
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.os.Bundle
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -21,9 +20,9 @@ import com.fjnu.schedule.data.SettingsRepository
 import com.fjnu.schedule.focus.FocusModeReceiver
 import com.fjnu.schedule.focus.FocusModeScheduler
 import com.fjnu.schedule.model.WorkloadDay
-import com.fjnu.schedule.widget.ProgressBeaconWidgetProvider
 import com.fjnu.schedule.viewmodel.RhythmViewModel
 import com.fjnu.schedule.viewmodel.RhythmViewModelFactory
+import com.fjnu.schedule.widget.ProgressBeaconWidgetProvider
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -76,7 +75,8 @@ class RhythmActivity : AppCompatActivity() {
     private fun initRepositories() {
         val database = AppDatabase.getInstance(this)
         settingsRepository = SettingsRepository(database.settingsDao(), database.semesterDao())
-        rhythmRepository = RhythmRepository(database.courseDao(), database.workspaceDao(), database.settingsDao())
+        rhythmRepository =
+            RhythmRepository(database.courseDao(), database.workspaceDao(), database.settingsDao())
         val factory = RhythmViewModelFactory(rhythmRepository, settingsRepository)
         viewModel = ViewModelProvider(this, factory)[RhythmViewModel::class.java]
         viewModel.ensureDefaults()
@@ -218,7 +218,7 @@ class RhythmActivity : AppCompatActivity() {
     }
 
     private fun isDndPermissionGranted(): Boolean {
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         return manager.isNotificationPolicyAccessGranted
     }
 
@@ -233,7 +233,8 @@ class RhythmActivity : AppCompatActivity() {
         }
         val appWidgetManager = getSystemService(AppWidgetManager::class.java)
         if (appWidgetManager == null || !appWidgetManager.isRequestPinAppWidgetSupported) {
-            Toast.makeText(this, "当前启动器不支持一键添加，请手动添加小组件", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "当前启动器不支持一键添加，请手动添加小组件", Toast.LENGTH_LONG)
+                .show()
             return
         }
         val provider = ComponentName(this, ProgressBeaconWidgetProvider::class.java)

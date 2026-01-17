@@ -13,10 +13,10 @@ import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.fjnu.schedule.data.AppDatabase
 import com.fjnu.schedule.data.CourseDao
@@ -40,6 +40,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.Random
+import androidx.core.content.edit
 
 class GroupSyncActivity : AppCompatActivity() {
 
@@ -133,18 +134,22 @@ class GroupSyncActivity : AppCompatActivity() {
                 ensureAuthenticated { showPublicSessionsDialog() }
                 return true
             }
+
             R.id.action_invite_member -> {
                 ensureAuthenticated { showInviteDialog() }
                 return true
             }
+
             R.id.action_change_visibility -> {
                 ensureAuthenticated { showVisibilityDialog() }
                 return true
             }
+
             R.id.action_leave_session -> {
                 ensureAuthenticated { leaveSession() }
                 return true
             }
+
             R.id.action_disband_session -> {
                 ensureAuthenticated { disbandSession() }
                 return true
@@ -233,19 +238,20 @@ class GroupSyncActivity : AppCompatActivity() {
             computeIntersection()
         }
 
-        weekSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: android.widget.AdapterView<*>?,
-                view: android.view.View?,
-                position: Int,
-                id: Long
-            ) {
-                selectedWeek = position + 1
-                renderIntersection()
-            }
+        weekSpinner.onItemSelectedListener =
+            object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: android.widget.AdapterView<*>?,
+                    view: android.view.View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    selectedWeek = position + 1
+                    renderIntersection()
+                }
 
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-        }
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+            }
     }
 
     override fun onDestroy() {
@@ -319,10 +325,12 @@ class GroupSyncActivity : AppCompatActivity() {
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Toast.makeText(this, "外部成员同步失败：${error.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "外部成员同步失败：${error.message}", Toast.LENGTH_SHORT)
+                        .show()
                     return@addSnapshotListener
                 }
-                externalShares = snapshot?.documents?.mapNotNull { parseExternalShare(it) } ?: emptyList()
+                externalShares =
+                    snapshot?.documents?.mapNotNull { parseExternalShare(it) } ?: emptyList()
                 currentIntersection = null
                 renderIntersection()
             }
@@ -370,10 +378,19 @@ class GroupSyncActivity : AppCompatActivity() {
                 when (resolution) {
                     is SessionResolution.Success -> {
                         setActiveSession(resolution.session)
-                        Toast.makeText(this@GroupSyncActivity, resolution.message, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@GroupSyncActivity,
+                            resolution.message,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
+
                     is SessionResolution.Error -> {
-                        Toast.makeText(this@GroupSyncActivity, resolution.message, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@GroupSyncActivity,
+                            resolution.message,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             }
@@ -494,7 +511,8 @@ class GroupSyncActivity : AppCompatActivity() {
                     Tasks.await(membersCollection(session.code).document(uid).delete())
                     withContext(Dispatchers.Main) {
                         clearActiveSession()
-                        Toast.makeText(this@GroupSyncActivity, "已退出组队", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@GroupSyncActivity, "已退出组队", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }
             }
@@ -530,7 +548,8 @@ class GroupSyncActivity : AppCompatActivity() {
                     )
                     withContext(Dispatchers.Main) {
                         clearActiveSession()
-                        Toast.makeText(this@GroupSyncActivity, "已解散组队", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@GroupSyncActivity, "已解散组队", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }
             }
@@ -602,12 +621,12 @@ class GroupSyncActivity : AppCompatActivity() {
 
     private fun saveDisplayName(name: String) {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .edit()
-            .putString(KEY_MEMBER_NAME, name)
-            .apply()
+            .edit {
+                putString(KEY_MEMBER_NAME, name)
+            }
     }
 
-    private suspend fun resolveSessionForCode(
+    private fun resolveSessionForCode(
         code: String,
         displayName: String
     ): SessionResolution {
@@ -619,7 +638,7 @@ class GroupSyncActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun resolveInvite(
+    private fun resolveInvite(
         inviteCode: String,
         uid: String,
         displayName: String
@@ -660,7 +679,7 @@ class GroupSyncActivity : AppCompatActivity() {
         return SessionResolution.Success(session, "已通过邀请加入组队：$sessionCode")
     }
 
-    private suspend fun resolveSessionCode(
+    private fun resolveSessionCode(
         code: String,
         uid: String,
         displayName: String
@@ -710,7 +729,7 @@ class GroupSyncActivity : AppCompatActivity() {
     private fun invitesCollection() =
         firestore.collection(COLLECTION_INVITES)
 
-    private suspend fun fetchSession(code: String): GroupSyncSession? {
+    private fun fetchSession(code: String): GroupSyncSession? {
         return try {
             val snapshot = Tasks.await(sessionDoc(code).get())
             parseSession(snapshot)
@@ -719,7 +738,7 @@ class GroupSyncActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun fetchPublicSessions(): List<GroupSyncSession> {
+    private fun fetchPublicSessions(): List<GroupSyncSession> {
         return try {
             val snapshot = Tasks.await(
                 firestore.collection(COLLECTION_SESSIONS)
@@ -735,7 +754,7 @@ class GroupSyncActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun createSession(
+    private fun createSession(
         code: String,
         semesterId: Long,
         totalWeeks: Int,
@@ -773,7 +792,7 @@ class GroupSyncActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun joinSession(
+    private fun joinSession(
         session: GroupSyncSession,
         uid: String,
         displayName: String,
@@ -789,7 +808,8 @@ class GroupSyncActivity : AppCompatActivity() {
         )
         return try {
             Tasks.await(
-                membersCollection(session.code).document(uid).set(member.toMap(), SetOptions.merge())
+                membersCollection(session.code).document(uid)
+                    .set(member.toMap(), SetOptions.merge())
             )
             if (fromInvite) {
                 Tasks.await(
@@ -805,7 +825,7 @@ class GroupSyncActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun upsertMemberAvailability(
+    private fun upsertMemberAvailability(
         code: String,
         uid: String,
         displayName: String,
@@ -822,7 +842,7 @@ class GroupSyncActivity : AppCompatActivity() {
         Tasks.await(membersCollection(code).document(uid).set(payload, SetOptions.merge()))
     }
 
-    private suspend fun addExternalShare(code: String, memberName: String, freeSlots: String) {
+    private fun addExternalShare(code: String, memberName: String, freeSlots: String) {
         val payload = mapOf(
             "memberName" to memberName,
             "freeSlots" to freeSlots,
@@ -941,12 +961,17 @@ class GroupSyncActivity : AppCompatActivity() {
     private fun importShareFromUri(uri: Uri) {
         lifecycleScope.launch {
             val json = withContext(Dispatchers.IO) {
-                contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)
+                    ?.use { it.readText() }
                     ?: ""
             }
             val payload = GroupSyncSerializer.fromJson(json)
             if (payload == null) {
-                Toast.makeText(this@GroupSyncActivity, "导入失败：文件格式不正确", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@GroupSyncActivity,
+                    "导入失败：文件格式不正确",
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@launch
             }
             handleImportedPayload(payload)
@@ -1224,7 +1249,10 @@ class GroupSyncActivity : AppCompatActivity() {
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .build()
-            manager.notify((sessionId.toInt() shl 8) + member.hashCode().coerceIn(1, 255), notification)
+            manager.notify(
+                (sessionId.toInt() shl 8) + member.hashCode().coerceIn(1, 255),
+                notification
+            )
         }
     }
 

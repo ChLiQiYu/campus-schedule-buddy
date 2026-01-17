@@ -204,11 +204,11 @@ class KnowledgeInventoryActivity : AppCompatActivity() {
         }
         var selectedStatus = KnowledgeStatus.fromLevel(point.masteryLevel)
         statusButton.setOnClickListener {
-            val options = KnowledgeStatus.values().map { it.label }.toTypedArray()
+            val options = KnowledgeStatus.entries.map { it.label }.toTypedArray()
             AlertDialog.Builder(this)
                 .setTitle("选择掌握状态")
                 .setItems(options) { _, which ->
-                    selectedStatus = KnowledgeStatus.values()[which]
+                    selectedStatus = KnowledgeStatus.entries.toTypedArray()[which]
                     statusButton.text = "切换状态：${selectedStatus.label}"
                 }
                 .show()

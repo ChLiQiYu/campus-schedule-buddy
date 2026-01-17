@@ -176,7 +176,7 @@ class AddEditCourseActivity : AppCompatActivity() {
         spCourseColor.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: android.widget.AdapterView<*>?,
-                view: android.view.View?,
+                view: View?,
                 position: Int,
                 id: Long
             ) {
@@ -353,14 +353,14 @@ class AddEditCourseActivity : AppCompatActivity() {
             id = editingCourse?.id ?: 0L,
             semesterId = editingCourse?.semesterId ?: semesterId,
             name = name,
-            teacher = if (teacher.isNotEmpty()) teacher else null,
-            location = if (location.isNotEmpty()) location else null,
+            teacher = teacher.ifEmpty { null },
+            location = location.ifEmpty { null },
             type = type,
             dayOfWeek = dayOfWeek,
             startPeriod = startPeriod,
             endPeriod = endPeriod,
             weekPattern = selectedWeeks.toList().sorted(),
-            note = if (note.isNotEmpty()) note else null,
+            note = note.ifEmpty { null },
             color = color
         )
 

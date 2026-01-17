@@ -429,7 +429,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             val lineColor = ContextCompat.getColor(requireContext(), R.color.grid_line)
             val timeTextColor = ContextCompat.getColor(requireContext(), R.color.text_secondary)
 
-            val timeMap = periodTimes.associate { it.period to it }
+            val timeMap = periodTimes.associateBy { it.period }
             val fallbackTimes = buildFallbackTimes(periodCount)
 
             // 为每个节次创建时间标签
@@ -444,7 +444,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                     text = "第${period}节\n$startTime\n$endTime"
                     textSize = 10f
                     setLineSpacing(0f, 1.1f)
-                    gravity = android.view.Gravity.CENTER
+                    gravity = Gravity.CENTER
                     setTextColor(timeTextColor)
                 }
 
@@ -666,7 +666,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
         settingsButton.setOnClickListener {
             dialog.dismiss()
-            startActivity(android.content.Intent(requireContext(), SettingsActivity::class.java))
+            startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
 
         dialog.setContentView(sheetView)
@@ -715,10 +715,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             .setView(container)
             .setPositiveButton("创建") { _, _ ->
                 val name = nameInput.text.toString().trim()
-                val finalName = if (name.isBlank()) {
+                val finalName = name.ifBlank {
                     "学期${selectedDate.year}"
-                } else {
-                    name
                 }
                 lifecycleScope.launch {
                     settingsRepository.createSemester(finalName, selectedDate)
@@ -858,9 +856,9 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     private fun highlightCurrentCourse() {
         // 获取当前时间
-        val now = java.time.LocalTime.now()
+        val now = LocalTime.now()
         val currentPeriod = getCurrentPeriod(now)
-        val currentDay = java.time.LocalDate.now().dayOfWeek.value
+        val currentDay = LocalDate.now().dayOfWeek.value
         val activeCourse = resolveCurrentCourse(currentPeriod, currentDay)
         updateQuickNoteFab(activeCourse)
 
@@ -908,7 +906,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
     private fun scrollToCurrentTime() {
         // 获取当前时间
-        val now = java.time.LocalTime.now()
+        val now = LocalTime.now()
         val currentPeriod = getCurrentPeriod(now)
 
         // 如果在课程时间范围内，则滚动到对应位置
@@ -924,7 +922,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     private fun getCurrentWeek(): Int {
         val start = semesterStartDate
         val today = LocalDate.now()
-        val daysDiff = java.time.temporal.ChronoUnit.DAYS.between(start, today)
+        val daysDiff = ChronoUnit.DAYS.between(start, today)
         return ((daysDiff / 7).toInt() + 1).coerceAtLeast(1).coerceAtMost(totalWeeks)
     }
 
@@ -1254,7 +1252,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             .show()
     }
 
-    private fun getCurrentPeriod(time: java.time.LocalTime): Int {
+    private fun getCurrentPeriod(time: LocalTime): Int {
         val formatter = DateTimeFormatter.ofPattern("HH:mm")
         if (periodTimes.isEmpty()) {
             return -1
@@ -1641,7 +1639,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 requireContext(),
                 { _, year, month, day ->
                     dueDate = LocalDate.of(year, month + 1, day)
-                    dateLabel.text = "截止日期：${dueDate.toString()}"
+                    dateLabel.text = "截止日期：$dueDate"
                 },
                 today.year,
                 today.monthValue - 1,

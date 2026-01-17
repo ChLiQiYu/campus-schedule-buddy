@@ -107,8 +107,8 @@ class CourseDetailDialog(
 
         // 设置备注
         if (course.note.isNullOrEmpty()) {
-            noteTextView.visibility = android.view.View.GONE
-            noteLabel.visibility = android.view.View.GONE
+            noteTextView.visibility = View.GONE
+            noteLabel.visibility = View.GONE
         } else {
             noteTextView.text = course.note
         }
