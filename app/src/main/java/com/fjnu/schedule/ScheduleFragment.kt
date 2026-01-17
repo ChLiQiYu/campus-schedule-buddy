@@ -1,77 +1,76 @@
 package com.fjnu.schedule
 
 import android.Manifest
+import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.Cursor
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.OpenableColumns
 import android.text.InputType
+import android.view.GestureDetector
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
-import android.widget.ImageButton
-import android.widget.FrameLayout
-import android.widget.ScrollView
-import android.widget.TextView
-import android.widget.LinearLayout
-import android.widget.Spinner
 import android.widget.ArrayAdapter
-import android.widget.EditText
 import android.widget.Button
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
-
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.fjnu.schedule.model.Course
 import com.fjnu.schedule.data.AppDatabase
-import com.fjnu.schedule.data.CourseRepository
 import com.fjnu.schedule.data.CourseAttachmentEntity
 import com.fjnu.schedule.data.CourseNoteEntity
+import com.fjnu.schedule.data.CourseRepository
 import com.fjnu.schedule.data.CourseTypeReminderEntity
 import com.fjnu.schedule.data.CourseWorkspaceCount
 import com.fjnu.schedule.data.PeriodTimeEntity
 import com.fjnu.schedule.data.ReminderSettingsEntity
 import com.fjnu.schedule.data.ScheduleSettingsEntity
-import com.fjnu.schedule.data.SettingsRepository
 import com.fjnu.schedule.data.SemesterEntity
+import com.fjnu.schedule.data.SettingsRepository
 import com.fjnu.schedule.data.WorkspaceRepository
+import com.fjnu.schedule.jw.JwSchoolSelectActivity
+import com.fjnu.schedule.model.Course
+import com.fjnu.schedule.reminder.ReminderScheduler
+import com.fjnu.schedule.util.ConflictFilterResult
+import com.fjnu.schedule.util.CourseExcelImporter
+import com.fjnu.schedule.util.CourseImportHelper
 import com.fjnu.schedule.view.CourseCardView
 import com.fjnu.schedule.view.CourseDetailDialog
-import android.os.Handler
-import android.os.Looper
-import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.fjnu.schedule.widget.ScheduleWidgetProvider
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.fjnu.schedule.reminder.ReminderScheduler
-import android.view.GestureDetector
-import android.view.MotionEvent
-import android.app.AlertDialog
-import android.app.DatePickerDialog
-import android.net.Uri
-import androidx.activity.result.contract.ActivityResultContracts
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import com.fjnu.schedule.util.CourseExcelImporter
-import com.fjnu.schedule.util.CourseImportHelper
-import com.fjnu.schedule.util.ConflictFilterResult
-import android.database.Cursor
-import android.provider.OpenableColumns
-import androidx.fragment.app.Fragment
-import com.fjnu.schedule.jw.JwSchoolSelectActivity
-import com.fjnu.schedule.widget.ScheduleWidgetProvider
 
 class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
 
@@ -93,48 +92,54 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     private lateinit var gestureDetector: GestureDetector
     private var lastRenderKey = 0
     private var renderPending = false
-    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            handleImportUri(uri)
-        }
-    }
-    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) {
-            handleExportUri(uri)
-        }
-    }
-    private val pdfPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        val course = pendingAttachmentCourse
-        if (uri == null || course == null) {
-            pendingAttachmentCourse = null
-            return@registerForActivityResult
-        }
-        try {
-            requireContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        } catch (_: SecurityException) {
-            // Ignore if we cannot persist the permission.
-        }
-        val title = resolveFileName(uri) ?: "PDF讲义"
-        val attachment = CourseAttachmentEntity(
-            semesterId = course.semesterId,
-            courseId = course.id,
-            type = CourseAttachmentEntity.TYPE_PDF,
-            title = title,
-            uri = uri.toString(),
-            sourceType = CourseAttachmentEntity.SOURCE_MANUAL,
-            createdAt = System.currentTimeMillis()
-        )
-        if (::workspaceRepository.isInitialized) {
-            lifecycleScope.launch {
-                withContext(Dispatchers.IO) {
-                    workspaceRepository.addAttachment(attachment)
-                }
-                workspaceRefresh?.invoke()
-                Toast.makeText(requireContext(), "已添加PDF讲义", Toast.LENGTH_SHORT).show()
+    private val importLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                handleImportUri(uri)
             }
         }
-        pendingAttachmentCourse = null
-    }
+    private val exportLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            if (uri != null) {
+                handleExportUri(uri)
+            }
+        }
+    private val pdfPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            val course = pendingAttachmentCourse
+            if (uri == null || course == null) {
+                pendingAttachmentCourse = null
+                return@registerForActivityResult
+            }
+            try {
+                requireContext().contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: SecurityException) {
+                // Ignore if we cannot persist the permission.
+            }
+            val title = resolveFileName(uri) ?: "PDF讲义"
+            val attachment = CourseAttachmentEntity(
+                semesterId = course.semesterId,
+                courseId = course.id,
+                type = CourseAttachmentEntity.TYPE_PDF,
+                title = title,
+                uri = uri.toString(),
+                sourceType = CourseAttachmentEntity.SOURCE_MANUAL,
+                createdAt = System.currentTimeMillis()
+            )
+            if (::workspaceRepository.isInitialized) {
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        workspaceRepository.addAttachment(attachment)
+                    }
+                    workspaceRefresh?.invoke()
+                    Toast.makeText(requireContext(), "已添加PDF讲义", Toast.LENGTH_SHORT).show()
+                }
+            }
+            pendingAttachmentCourse = null
+        }
 
     private var currentWeek = 1
     private var totalWeeks = DEFAULT_TOTAL_WEEKS
@@ -188,7 +193,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
-            val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            val systemBars =
+                insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
         }
@@ -337,7 +343,12 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val scheduleFrameLayout = buildScheduleFrameLayout()
         addGridBackground(scheduleFrameLayout, dayCount = 7)
         courses.forEach { course ->
-            addCourseCard(scheduleFrameLayout, course, dayIndexInView = course.dayOfWeek - 1, dayCount = 7)
+            addCourseCard(
+                scheduleFrameLayout,
+                course,
+                dayIndexInView = course.dayOfWeek - 1,
+                dayCount = 7
+            )
         }
         scheduleContainer.addView(scheduleFrameLayout)
         highlightCurrentCourse()
@@ -376,12 +387,15 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             val weekIndex = getWeekIndexForDate(date)
             val courses = if (weekIndex > 0) {
                 courseList.filter { course ->
-                    course.dayOfWeek == date.dayOfWeek.value && course.weekPattern.contains(weekIndex)
+                    course.dayOfWeek == date.dayOfWeek.value && course.weekPattern.contains(
+                        weekIndex
+                    )
                 }
             } else {
                 emptyList()
             }
-            dayLabel.text = "${date.monthValue}/${date.dayOfMonth} ${formatWeekday(date.dayOfWeek.value)}"
+            dayLabel.text =
+                "${date.monthValue}/${date.dayOfMonth} ${formatWeekday(date.dayOfWeek.value)}"
             summaryLabel.text = formatMonthSummary(courses)
             listContainer.addView(dayView)
             date = date.plusDays(1)
@@ -470,7 +484,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                     dpToPx(1),
                     totalHeight
                 )
-                params.leftMargin = metrics.innerPadding + timeColumnWidth + metrics.dayColumnWidth * i
+                params.leftMargin =
+                    metrics.innerPadding + timeColumnWidth + metrics.dayColumnWidth * i
                 divider.layoutParams = params
                 container.addView(divider)
             }
@@ -481,7 +496,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val settings = scheduleSettings
         val periodMinutes = settings?.periodMinutes ?: 45
         val breakMinutes = settings?.breakMinutes ?: 10
-        val startTimeText = periodTimes.firstOrNull { it.period == 1 }?.startTime ?: DEFAULT_START_TIME
+        val startTimeText =
+            periodTimes.firstOrNull { it.period == 1 }?.startTime ?: DEFAULT_START_TIME
         val formatter = DateTimeFormatter.ofPattern("HH:mm")
         val safeStart = try {
             LocalTime.parse(startTimeText, formatter)
@@ -560,7 +576,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     private fun showMoreMenu() {
         val dialog = BottomSheetDialog(requireContext())
         val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_main_menu, null)
-        val toggleGroup = sheetView.findViewById<MaterialButtonToggleGroup>(R.id.toggle_view_mode_sheet)
+        val toggleGroup =
+            sheetView.findViewById<MaterialButtonToggleGroup>(R.id.toggle_view_mode_sheet)
         val btnDay = sheetView.findViewById<MaterialButton>(R.id.btn_view_day_sheet)
         val btnWeek = sheetView.findViewById<MaterialButton>(R.id.btn_view_week_sheet)
         val btnMonth = sheetView.findViewById<MaterialButton>(R.id.btn_view_month_sheet)
@@ -606,29 +623,30 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         if (currentIndex >= 0 && semesters.isNotEmpty()) {
             spinner.setSelection(currentIndex, false)
         }
-        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: android.widget.AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
-                if (skipSelection) {
-                    skipSelection = false
-                    return
-                }
-                val selected = semesters.getOrNull(position) ?: return
-                if (!::settingsRepository.isInitialized) return
-                if (selected.id != currentSemesterId) {
-                    lifecycleScope.launch {
-                        settingsRepository.setCurrentSemester(selected.id)
+        spinner.onItemSelectedListener =
+            object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: android.widget.AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    if (skipSelection) {
+                        skipSelection = false
+                        return
                     }
+                    val selected = semesters.getOrNull(position) ?: return
+                    if (!::settingsRepository.isInitialized) return
+                    if (selected.id != currentSemesterId) {
+                        lifecycleScope.launch {
+                            settingsRepository.setCurrentSemester(selected.id)
+                        }
+                    }
+                    dialog.dismiss()
                 }
-                dialog.dismiss()
-            }
 
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-        }
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+            }
 
         addSemesterButton.setOnClickListener {
             dialog.dismiss()
@@ -723,31 +741,35 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     }
 
     private fun setupGestureDetector() {
-        gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
-            override fun onDown(e: MotionEvent): Boolean {
-                return true
-            }
-
-            override fun onFling(
-                e1: MotionEvent?,
-                e2: MotionEvent,
-                velocityX: Float,
-                velocityY: Float
-            ): Boolean {
-                if (e1 == null) return false
-                val diffX = e2.x - e1.x
-                val diffY = e2.y - e1.y
-                if (kotlin.math.abs(diffX) > kotlin.math.abs(diffY) && kotlin.math.abs(diffX) > dpToPx(64)) {
-                    if (diffX > 0) {
-                        handleHorizontalSwipe(-1)
-                    } else {
-                        handleHorizontalSwipe(1)
-                    }
+        gestureDetector =
+            GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDown(e: MotionEvent): Boolean {
                     return true
                 }
-                return false
-            }
-        })
+
+                override fun onFling(
+                    e1: MotionEvent?,
+                    e2: MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float
+                ): Boolean {
+                    if (e1 == null) return false
+                    val diffX = e2.x - e1.x
+                    val diffY = e2.y - e1.y
+                    if (kotlin.math.abs(diffX) > kotlin.math.abs(diffY) && kotlin.math.abs(diffX) > dpToPx(
+                            64
+                        )
+                    ) {
+                        if (diffX > 0) {
+                            handleHorizontalSwipe(-1)
+                        } else {
+                            handleHorizontalSwipe(1)
+                        }
+                        return true
+                    }
+                    return false
+                }
+            })
     }
 
     private fun handleHorizontalSwipe(direction: Int) {
@@ -808,22 +830,22 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         dayCount: Int
     ) {
         val rowHeight = getPeriodRowHeight()
-        
+
         // 等待容器测量完成后再计算位置
         container.post {
             val containerWidth = container.width
             if (containerWidth <= 0) return@post
 
             val metrics = calculateGridMetrics(containerWidth, dayCount)
-            
+
             // 计算课程卡片的位置和尺寸
             val span = course.endPeriod - course.startPeriod + 1
             val cardLeft = metrics.innerPadding + metrics.timeColumnWidth +
-                dayIndexInView * metrics.dayColumnWidth + metrics.columnGap
+                    dayIndexInView * metrics.dayColumnWidth + metrics.columnGap
             val cardTop = (course.startPeriod - 1) * rowHeight + metrics.columnGap
             val cardWidth = metrics.dayColumnWidth - metrics.columnGap * 2
             val cardHeight = rowHeight * span - metrics.columnGap * 2
-            
+
             val courseCard = CourseCardView(requireContext()).apply {
                 setCourse(course)
                 setTaskCount(taskCounts[course.id] ?: 0)
@@ -833,17 +855,17 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                     leftMargin = cardLeft
                     topMargin = cardTop
                 }
-                
+
                 // 设置较高的elevation确保课程卡片在网格之上
                 elevation = dpToPx(4).toFloat()
-                
+
                 setOnClickListener {
                     showCourseDetailDialog(course)
                 }
             }
-            
+
             container.addView(courseCard)
-            
+
             // 启动入场动画
             val delay = ((course.dayOfWeek - 1) * 50L + (course.startPeriod - 1) * 30L)
             courseCard.startEntranceAnimation(delay)
@@ -870,10 +892,10 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                         val course = getCourseFromCard(cardView)
                         if (course != null) {
                             val isCurrent = currentPeriod > 0 &&
-                                currentDay in 1..7 &&
-                                course.dayOfWeek == currentDay &&
-                                currentPeriod >= course.startPeriod &&
-                                currentPeriod <= course.endPeriod
+                                    currentDay in 1..7 &&
+                                    course.dayOfWeek == currentDay &&
+                                    currentPeriod >= course.startPeriod &&
+                                    currentPeriod <= course.endPeriod
                             cardView.setCurrentCourse(isCurrent)
                         }
                     }
@@ -887,8 +909,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val currentWeekIndex = getCurrentWeek()
         return courseList.firstOrNull { course ->
             course.dayOfWeek == currentDay &&
-                currentPeriod in course.startPeriod..course.endPeriod &&
-                course.weekPattern.contains(currentWeekIndex)
+                    currentPeriod in course.startPeriod..course.endPeriod &&
+                    course.weekPattern.contains(currentWeekIndex)
         }
     }
 
@@ -970,7 +992,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val isJson = lowerName.endsWith(".json") || mimeType.contains("json")
         val isXls = lowerName.endsWith(".xls") || mimeType.contains("ms-excel")
         if (!isJson && !isXls) {
-            Toast.makeText(requireContext(), "请选择.xls或.json格式的课表文件", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "请选择.xls或.json格式的课表文件", Toast.LENGTH_SHORT)
+                .show()
             return
         }
         if (isJson) {
@@ -1016,7 +1039,11 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         lifecycleScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
-                    CourseExcelImporter.importFromUri(requireContext().contentResolver, uri, currentSemesterId)
+                    CourseExcelImporter.importFromUri(
+                        requireContext().contentResolver,
+                        uri,
+                        currentSemesterId
+                    )
                 }
                 progressDialog.dismiss()
                 if (result.courses.isEmpty()) {
@@ -1047,16 +1074,19 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         lifecycleScope.launch {
             try {
                 val json = withContext(Dispatchers.IO) {
-                    requireContext().contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                    requireContext().contentResolver.openInputStream(uri)
+                        ?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
                         ?: ""
                 }
-                val payload = com.fjnu.schedule.util.CourseJsonSerializer.fromJson(json, currentSemesterId)
+                val payload =
+                    com.fjnu.schedule.util.CourseJsonSerializer.fromJson(json, currentSemesterId)
                 progressDialog.dismiss()
                 if (payload.courses.isEmpty()) {
                     throw IllegalStateException("未解析到课程数据，请检查导出文件")
                 }
                 val semesterName = payload.semesterName
-                val semesterStart = payload.semesterStartDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+                val semesterStart =
+                    payload.semesterStartDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
                 if (semesterName != null || semesterStart != null) {
                     showJsonImportTargetDialog(payload, semesterName, semesterStart)
                 } else {
@@ -1106,7 +1136,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val periodUpdates = payload.periodTimes.map { it.copy(semesterId = semesterId) }
         val reminderUpdate = payload.reminderSettings?.copy(semesterId = semesterId)
         val typeUpdates = payload.courseTypeReminders.map { it.copy(semesterId = semesterId) }
-        val startDate = payload.semesterStartDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        val startDate =
+            payload.semesterStartDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
 
         confirmAndImportCourses(
             semesterId = semesterId,
@@ -1139,7 +1170,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     ) {
         val filtered = CourseImportHelper.filterConflicts(courses)
         if (filtered.conflictCount > 0 || filtered.duplicateCount > 0) {
-            val message = "检测到${filtered.conflictCount}条时间冲突、${filtered.duplicateCount}条重复课程，将自动跳过冲突项。"
+            val message =
+                "检测到${filtered.conflictCount}条时间冲突、${filtered.duplicateCount}条重复课程，将自动跳过冲突项。"
             AlertDialog.Builder(requireContext())
                 .setTitle("导入冲突提示")
                 .setMessage(message)
@@ -1265,6 +1297,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         )
         dialog.show()
     }
+
     private var pendingMediaPermissionAction: (() -> Unit)? = null
     private val mediaPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
@@ -1294,7 +1327,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_course_workspace, null)
         val titleView = sheetView.findViewById<TextView>(R.id.tv_workspace_title)
         val subtitleView = sheetView.findViewById<TextView>(R.id.tv_workspace_subtitle)
-        val tabLayout = sheetView.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tab_workspace)
+        val tabLayout =
+            sheetView.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tab_workspace)
         val attachmentsContainer = sheetView.findViewById<LinearLayout>(R.id.container_attachments)
         val mediaContainer = sheetView.findViewById<LinearLayout>(R.id.container_media)
         val mediaEmpty = sheetView.findViewById<TextView>(R.id.tv_media_empty)
@@ -1306,7 +1340,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val addNoteButton = sheetView.findViewById<MaterialButton>(R.id.btn_add_note)
 
         titleView.text = "${course.name} 课程资料"
-        subtitleView.text = "${formatWeekday(course.dayOfWeek)} 第${course.startPeriod}-${course.endPeriod}节"
+        subtitleView.text =
+            "${formatWeekday(course.dayOfWeek)} 第${course.startPeriod}-${course.endPeriod}节"
 
         fun refreshWorkspace() {
             lifecycleScope.launch {
@@ -1319,7 +1354,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 val mediaItems = if (hasMediaPermission()) {
                     attachments.filter {
                         it.sourceType == CourseAttachmentEntity.SOURCE_CHRONICLE_MEDIA ||
-                            it.type == CourseAttachmentEntity.TYPE_MEDIA
+                                it.type == CourseAttachmentEntity.TYPE_MEDIA
                     }
                 } else {
                     mediaEmpty.text = "需要访问相册权限来关联课堂拍摄的照片与录音"
@@ -1327,7 +1362,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 }
                 val manualItems = attachments.filterNot {
                     it.sourceType == CourseAttachmentEntity.SOURCE_CHRONICLE_MEDIA ||
-                        it.type == CourseAttachmentEntity.TYPE_MEDIA
+                            it.type == CourseAttachmentEntity.TYPE_MEDIA
                 }
                 renderWorkspaceAttachments(attachmentsContainer, manualItems)
                 renderWorkspaceMedia(mediaContainer, mediaEmpty, mediaItems)
@@ -1363,7 +1398,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             }
         }
 
-        tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+        tabLayout.addOnTabSelectedListener(object :
+            com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab) {
                 if (tab.position == 1) {
                     showMediaTab()
@@ -1552,7 +1588,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                 val title = titleInput.text.toString().trim()
                 val urlRaw = urlInput.text.toString().trim()
                 if (title.isBlank() || urlRaw.isBlank()) {
-                    Toast.makeText(requireContext(), "链接名称和地址不能为空", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "链接名称和地址不能为空", Toast.LENGTH_SHORT)
+                        .show()
                     return@setPositiveButton
                 }
                 val url = if (urlRaw.startsWith("http://") || urlRaw.startsWith("https://")) {
@@ -1614,7 +1651,8 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                     Toast.makeText(requireContext(), "作业标题不能为空", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                val dueAt = dueDate?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+                val dueAt =
+                    dueDate?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
                 saveAttachment(
                     course = course,
                     type = CourseAttachmentEntity.TYPE_TASK,
@@ -1688,11 +1726,12 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             CourseAttachmentEntity.TYPE_MEDIA -> "媒体记录"
             else -> "附件"
         }
-        val dueLabel = if (attachment.type == CourseAttachmentEntity.TYPE_TASK && attachment.dueAt != null) {
-            "截止 ${formatDueDate(attachment.dueAt)}"
-        } else {
-            null
-        }
+        val dueLabel =
+            if (attachment.type == CourseAttachmentEntity.TYPE_TASK && attachment.dueAt != null) {
+                "截止 ${formatDueDate(attachment.dueAt)}"
+            } else {
+                null
+            }
         return listOfNotNull(typeLabel, dueLabel).joinToString(" · ")
     }
 

@@ -1,4 +1,5 @@
 package com.fjnu.schedule.view
+
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
@@ -15,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import com.fjnu.schedule.R
 import com.fjnu.schedule.model.Course
+import androidx.core.graphics.toColorInt
 
 @SuppressLint("ClickableViewAccessibility")
 class CourseCardView @JvmOverloads constructor(
@@ -39,12 +41,12 @@ class CourseCardView @JvmOverloads constructor(
     }
     private val recordDotPaint = Paint().apply {
         isAntiAlias = true
-        color = Color.parseColor("#FF4D4F")
+        color = "#FF4D4F".toColorInt()
     }
 
     init {
         orientation = VERTICAL
-        gravity = Gravity.START or Gravity.TOP
+        gravity = Gravity.START or Gravity.CENTER_VERTICAL // 课程项内部居中对齐
         // 优化内边距，确保在小屏幕上也能显示足够的文本
         val horizontalPadding = dpToPx(6)
         val verticalPadding = dpToPx(8)
@@ -71,14 +73,14 @@ class CourseCardView @JvmOverloads constructor(
         // 保留节次信息的占位（不显示）
         periodTextView = ChineseOptimizedTextView(context).apply {
             setupForChineseText(8f, false, 3, 1)
-            visibility = View.GONE
+            visibility = GONE
         }
 
         taskAlertTextView = AppCompatTextView(context).apply {
             textSize = 9f
-            visibility = View.GONE
+            visibility = GONE
             maxLines = 3
-            setSingleLine(false)
+            isSingleLine = false
             ellipsize = null
             setTextColor(ContextCompat.getColor(context, R.color.error))
         }
@@ -110,6 +112,7 @@ class CourseCardView @JvmOverloads constructor(
                         .start()
                     ViewCompat.setTranslationZ(this, dpToPx(6).toFloat())
                 }
+
                 android.view.MotionEvent.ACTION_UP,
                 android.view.MotionEvent.ACTION_CANCEL -> {
                     animate()
@@ -156,8 +159,9 @@ class CourseCardView @JvmOverloads constructor(
      * 根据系统主题更新文字颜色
      */
     private fun updateTextColors() {
-        val isDarkMode = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
-    
+        val isDarkMode =
+            context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+
         // 在浅色模式下，将所有文本设置为白色以确保良好的可读性
         val whiteColor = ContextCompat.getColor(context, R.color.white)
         val primaryTextColor = if (isDarkMode) {
@@ -165,13 +169,13 @@ class CourseCardView @JvmOverloads constructor(
         } else {
             whiteColor
         }
-    
+
         val secondaryTextColor = if (isDarkMode) {
             ContextCompat.getColor(context, R.color.dark_text_secondary)
         } else {
             whiteColor
         }
-    
+
         courseNameTextView.setTextColor(primaryTextColor)
         teacherTextView.setTextColor(secondaryTextColor)
         locationTextView.setTextColor(secondaryTextColor)
@@ -180,13 +184,14 @@ class CourseCardView @JvmOverloads constructor(
 
     fun setTaskCount(count: Int) {
         if (count <= 0) {
-            taskAlertTextView.visibility = View.GONE
+            taskAlertTextView.visibility = GONE
             return
         }
         val label = "作业 x$count"
         taskAlertTextView.text = label
-        taskAlertTextView.visibility = View.VISIBLE
+        taskAlertTextView.visibility = VISIBLE
     }
+
     /**
      * 设置背景颜色
      */
@@ -239,13 +244,13 @@ class CourseCardView @JvmOverloads constructor(
                 .start()
         }, delay)
     }
-        
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         // 重新测量文本
         requestLayout()
     }
-    
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -259,7 +264,7 @@ class CourseCardView @JvmOverloads constructor(
             canvas.drawText("REC", textX.toFloat(), textY.toFloat(), recordTextPaint)
         }
     }
-    
+
     /**
      * 设置当前课程高亮效果
      * @param isCurrent 是否为当前课程
@@ -268,7 +273,10 @@ class CourseCardView @JvmOverloads constructor(
         isCurrentCourse = isCurrent
         if (isCurrent) {
             elevation = dpToPx(10).toFloat()
-            backgroundDrawable?.setStroke(dpToPx(2), ContextCompat.getColor(context, R.color.card_border_current))
+            backgroundDrawable?.setStroke(
+                dpToPx(2),
+                ContextCompat.getColor(context, R.color.card_border_current)
+            )
             animate()
                 .scaleX(1.02f)
                 .scaleY(1.02f)
@@ -276,7 +284,10 @@ class CourseCardView @JvmOverloads constructor(
                 .start()
         } else {
             elevation = dpToPx(3).toFloat()
-            backgroundDrawable?.setStroke(dpToPx(1), ContextCompat.getColor(context, R.color.card_border))
+            backgroundDrawable?.setStroke(
+                dpToPx(1),
+                ContextCompat.getColor(context, R.color.card_border)
+            )
             animate()
                 .scaleX(1.0f)
                 .scaleY(1.0f)
@@ -310,7 +321,7 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
     init {
         // 使用系统省略号
         setHorizontallyScrolling(false)
-        setSingleLine(false)
+        isSingleLine = false
         ellipsize = TextUtils.TruncateAt.END
 
     }
@@ -326,23 +337,26 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
         this.minChineseCharsPerLine = minChineseChars
         this.maxLines = maxLines
         this.isBold = bold
-    
+
         // 设置基础属性
         setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, textSizeSp)
-        setTypeface(null, if (bold) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
-        gravity = Gravity.TOP or Gravity.START
+        setTypeface(
+            null,
+            if (bold) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL
+        )
+        gravity = Gravity.START or Gravity.CENTER_VERTICAL // 课程项内部居中对齐
         baseTextSizePx = textSize
-    
+
         // 使用系统省略号并限制最大行数
-        setSingleLine(false)
+        isSingleLine = false
         this.maxLines = maxLines
         ellipsize = TextUtils.TruncateAt.END
-    
+
         // 设置合适的行间距，特别优化数字和字母的显示
         val density = context.resources.displayMetrics.density
         val extraSpacing = (2 * density).toInt() // 减小行间距以适应数字和字母
         setLineSpacing(extraSpacing.toFloat(), 1.0f)
-            
+
         // 确保视图能够正确测量高度
         includeFontPadding = false
     }
@@ -391,7 +405,12 @@ class ChineseOptimizedTextView @JvmOverloads constructor(
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 
-    override fun onTextChanged(text: CharSequence?, start: Int, lengthBefore: Int, lengthAfter: Int) {
+    override fun onTextChanged(
+        text: CharSequence?,
+        start: Int,
+        lengthBefore: Int,
+        lengthAfter: Int
+    ) {
         super.onTextChanged(text, start, lengthBefore, lengthAfter)
 
         // 文本变化后，重新测量
