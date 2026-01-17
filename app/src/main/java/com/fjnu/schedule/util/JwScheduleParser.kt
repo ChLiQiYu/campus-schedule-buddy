@@ -13,6 +13,8 @@ data class JwImportResult(
 
 object JwScheduleParser {
 
+    private const val MAX_PERIOD = 20
+
     private val colorPalette = listOf(
         0xFF6D8AD6.toInt(),
         0xFF9A7BB7.toInt(),
@@ -97,10 +99,13 @@ object JwScheduleParser {
 
         val periodRangeFromText = parsePeriodRangeWithLabel(timeText.ifBlank { combined })
         val periodRangeFromCell = if (periodText.isNotBlank()) parsePeriodRange(periodText) else parsePeriodRange(rowHeader)
+        val combinedHasPeriod = combined.contains("节") ||
+            Regex("\\d{1,2}\\s*[-~～—–－]\\s*\\d{1,2}").containsMatchIn(combined)
         val baseRange = when {
             periodRangeFromText.first != null -> periodRangeFromText
             periodRangeFromCell.first != null -> periodRangeFromCell
-            else -> parsePeriodRange(combined)
+            combinedHasPeriod -> parsePeriodRange(combined)
+            else -> Pair(null, null)
         }
         val startPeriod = baseRange.first
         val endPeriod = baseRange.second ?: startPeriod?.let { it + (rowSpan.coerceAtLeast(1) - 1) }
@@ -214,9 +219,11 @@ object JwScheduleParser {
 
     private fun parsePeriodRange(text: String?): Pair<Int?, Int?> {
         if (text.isNullOrBlank()) return Pair(null, null)
-        var cleaned = text.replace("节", "").replace("第", "").replace(" ", "")
-        val range = Regex("(\\d{1,2})\\s*[-~]\\s*(\\d{1,2})").find(cleaned)
-        return if (range != null) {
+        var cleaned = normalizePeriodText(text)
+        cleaned = cleaned.replace("节", "").replace("第", "").replace(" ", "")
+        if (cleaned.isBlank()) return Pair(null, null)
+        val range = Regex("(\\d{1,2})\\s*[-~～—–－]\\s*(\\d{1,2})(?!\\d)").find(cleaned)
+        val raw = if (range != null) {
             val start = range.groupValues[1].toIntOrNull()
             val end = range.groupValues[2].toIntOrNull()
             Pair(start, end)
@@ -224,19 +231,39 @@ object JwScheduleParser {
             val single = Regex("(\\d{1,2})").find(cleaned)?.groupValues?.get(1)?.toIntOrNull()
             Pair(single, single)
         }
+        return sanitizePeriodRange(raw.first, raw.second)
     }
 
     private fun parsePeriodRangeWithLabel(text: String?): Pair<Int?, Int?> {
         if (text.isNullOrBlank()) return Pair(null, null)
-        val range = Regex("(\\d{1,2})\\s*[-~]\\s*(\\d{1,2})\\s*节").find(text)
-        return if (range != null) {
+        val normalized = normalizePeriodText(text)
+        val range = Regex("(\\d{1,2})\\s*[-~～—–－]\\s*(\\d{1,2})(?!\\d)\\s*节").find(normalized)
+        val raw = if (range != null) {
             val start = range.groupValues[1].toIntOrNull()
             val end = range.groupValues[2].toIntOrNull()
             Pair(start, end)
         } else {
-            val single = Regex("第?\\s*(\\d{1,2})\\s*节").find(text)?.groupValues?.get(1)?.toIntOrNull()
+            val single = Regex("第?\\s*(\\d{1,2})\\s*节").find(normalized)?.groupValues?.get(1)?.toIntOrNull()
             Pair(single, single)
         }
+        return sanitizePeriodRange(raw.first, raw.second)
+    }
+
+    private fun normalizePeriodText(text: String): String {
+        var result = text
+        result = result.replace("（", "(").replace("）", ")")
+        result = result.replace(Regex("\\d{1,2}\\s*[-~～—–－]\\s*\\d{1,2}\\s*周"), "")
+        result = result.replace(Regex("\\d{1,2}\\s*(单|双)?\\s*周"), "")
+        result = result.replace("周次", "").replace("周数", "")
+        return result
+    }
+
+    private fun sanitizePeriodRange(start: Int?, end: Int?): Pair<Int?, Int?> {
+        if (start == null) return Pair(null, null)
+        val resolvedEnd = end ?: start
+        if (start <= 0 || start > MAX_PERIOD) return Pair(null, null)
+        if (resolvedEnd <= 0 || resolvedEnd > MAX_PERIOD) return Pair(null, null)
+        return Pair(start, if (resolvedEnd < start) start else resolvedEnd)
     }
 
     private fun parseWeekPattern(rawText: String?): List<Int> {
@@ -295,4 +322,5 @@ object JwScheduleParser {
         text = text?.replace(Regex("\\s+"), " ")
         return text?.trim()?.ifBlank { null }
     }
+
 }

@@ -292,10 +292,16 @@ class JwImportActivity : AppCompatActivity() {
                 var bodies = table.querySelectorAll("tbody[id^='xq_']");
                 bodies.forEach(function(body) {
                   var dayText = textOf(body.querySelector('span.week'));
+                  var lastPeriodText = '';
                   var rows = body.querySelectorAll('tr');
                   rows.forEach(function(row) {
                     var periodCell = row.querySelector("td[id^='jc_']");
                     var periodText = textOf(periodCell);
+                    if (periodText) {
+                      lastPeriodText = periodText;
+                    } else if (lastPeriodText) {
+                      periodText = lastPeriodText;
+                    }
                     var courseNodes = row.querySelectorAll('div.timetable_con');
                     courseNodes.forEach(function(node) {
                       var name = textOf(node.querySelector('.title'));
