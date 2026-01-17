@@ -54,20 +54,26 @@ class ReminderSettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_reminder_settings)
 
         val root = findViewById<LinearLayout>(R.id.reminder_root)
-        val initialTop = root.paddingTop
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar_reminder)
         val initialBottom = root.paddingBottom
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+        val initialToolbarTop = toolbar.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top + initialTop,
-                view.paddingRight,
+            toolbar.setPadding(
+                toolbar.paddingLeft,
+                systemBars.top + initialToolbarTop,
+                toolbar.paddingRight,
+                toolbar.paddingBottom
+            )
+            root.setPadding(
+                root.paddingLeft,
+                0,
+                root.paddingRight,
                 systemBars.bottom + initialBottom
             )
             insets
         }
 
-        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar_reminder)
         toolbar.setNavigationIcon(R.drawable.ic_arrow_left)
         toolbar.setNavigationOnClickListener { finish() }
 

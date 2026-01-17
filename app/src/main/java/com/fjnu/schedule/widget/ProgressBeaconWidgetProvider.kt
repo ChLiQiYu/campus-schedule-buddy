@@ -49,66 +49,74 @@ class ProgressBeaconWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
 
             CoroutineScope(Dispatchers.IO).launch {
-                val database = AppDatabase.getInstance(context)
-                val settingsDao = database.settingsDao()
-                val semesterDao = database.semesterDao()
-                val courseDao = database.courseDao()
-                val workspaceDao = database.workspaceDao()
+                try {
+                    val database = AppDatabase.getInstance(context)
+                    val settingsDao = database.settingsDao()
+                    val semesterDao = database.semesterDao()
+                    val courseDao = database.courseDao()
+                    val workspaceDao = database.workspaceDao()
 
-                val settings = settingsDao.getAppSettings()
-                val semesterId = settings?.currentSemesterId ?: 0L
-                if (semesterId <= 0L) {
+                    val settings = settingsDao.getAppSettings()
+                    val semesterId = settings?.currentSemesterId ?: 0L
+                    if (semesterId <= 0L) {
+                        val fallbackViews = RemoteViews(context.packageName, R.layout.app_widget_progress_beacon)
+                        fallbackViews.setTextViewText(R.id.tv_widget_task, "暂无任务")
+                        fallbackViews.setTextViewText(R.id.tv_widget_load, "今日负荷：--")
+                        fallbackViews.setOnClickPendingIntent(R.id.tv_widget_title, pendingIntent)
+                        appWidgetManager.updateAppWidget(appWidgetId, fallbackViews)
+                        return@launch
+                    }
+                    val semester = semesterDao.getSemester(semesterId)
+                    val semesterStart = semester?.startDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
+                    val courses = courseDao.getAllCourses(semesterId)
+                    val tasksWithDue = workspaceDao.getTaskAttachments(
+                        semesterId,
+                        com.fjnu.schedule.data.CourseAttachmentEntity.TYPE_TASK
+                    )
+                    val tasksAll = workspaceDao.getTaskAttachmentsAll(
+                        semesterId,
+                        com.fjnu.schedule.data.CourseAttachmentEntity.TYPE_TASK
+                    )
+                    val periodTimes = settingsDao.getPeriodTimes(semesterId)
+                    val scheduleSettings = settingsDao.getScheduleSettings(semesterId)
+                    val periodCount = if (periodTimes.isNotEmpty()) {
+                        periodTimes.maxOf { it.period }.coerceAtLeast(1)
+                    } else {
+                        scheduleSettings?.periodCount ?: DEFAULT_PERIOD_COUNT
+                    }
+                    val totalWeeks = scheduleSettings?.totalWeeks ?: DEFAULT_TOTAL_WEEKS
+                    val currentWeek = calculateCurrentWeek(semesterStart, totalWeeks)
+
+                    val weekWorkloads = WorkloadCalculator.calculateWeeklyWorkload(
+                        courses = courses,
+                        tasks = tasksWithDue,
+                        semesterStartDate = semesterStart,
+                        weekIndex = currentWeek,
+                        totalWeeks = totalWeeks,
+                        periodCount = periodCount
+                    )
+                    val todayIndex = LocalDate.now().dayOfWeek.value - 1
+                    val todayLoad = weekWorkloads.getOrNull(todayIndex)?.index ?: 0
+                    val trend = WorkloadCalculator.calculateTrend(
+                        todayLoad,
+                        weekWorkloads.map { it.index }
+                    )
+
+                    val taskText = buildTaskSummary(tasksAll)
+                    val loadText = "今日负荷：$todayLoad · 趋势：$trend"
+
+                    val updatedViews = RemoteViews(context.packageName, R.layout.app_widget_progress_beacon)
+                    updatedViews.setTextViewText(R.id.tv_widget_task, taskText)
+                    updatedViews.setTextViewText(R.id.tv_widget_load, loadText)
+                    updatedViews.setOnClickPendingIntent(R.id.tv_widget_title, pendingIntent)
+                    appWidgetManager.updateAppWidget(appWidgetId, updatedViews)
+                } catch (_: Exception) {
                     val fallbackViews = RemoteViews(context.packageName, R.layout.app_widget_progress_beacon)
                     fallbackViews.setTextViewText(R.id.tv_widget_task, "暂无任务")
                     fallbackViews.setTextViewText(R.id.tv_widget_load, "今日负荷：--")
                     fallbackViews.setOnClickPendingIntent(R.id.tv_widget_title, pendingIntent)
                     appWidgetManager.updateAppWidget(appWidgetId, fallbackViews)
-                    return@launch
                 }
-                val semester = semesterDao.getSemester(semesterId)
-                val semesterStart = semester?.startDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
-                val courses = courseDao.getAllCourses(semesterId)
-                val tasksWithDue = workspaceDao.getTaskAttachments(
-                    semesterId,
-                    com.fjnu.schedule.data.CourseAttachmentEntity.TYPE_TASK
-                )
-                val tasksAll = workspaceDao.getTaskAttachmentsAll(
-                    semesterId,
-                    com.fjnu.schedule.data.CourseAttachmentEntity.TYPE_TASK
-                )
-                val periodTimes = settingsDao.getPeriodTimes(semesterId)
-                val scheduleSettings = settingsDao.getScheduleSettings(semesterId)
-                val periodCount = if (periodTimes.isNotEmpty()) {
-                    periodTimes.maxOf { it.period }.coerceAtLeast(1)
-                } else {
-                    scheduleSettings?.periodCount ?: DEFAULT_PERIOD_COUNT
-                }
-                val totalWeeks = scheduleSettings?.totalWeeks ?: DEFAULT_TOTAL_WEEKS
-                val currentWeek = calculateCurrentWeek(semesterStart, totalWeeks)
-
-                val weekWorkloads = WorkloadCalculator.calculateWeeklyWorkload(
-                    courses = courses,
-                    tasks = tasksWithDue,
-                    semesterStartDate = semesterStart,
-                    weekIndex = currentWeek,
-                    totalWeeks = totalWeeks,
-                    periodCount = periodCount
-                )
-                val todayIndex = LocalDate.now().dayOfWeek.value - 1
-                val todayLoad = weekWorkloads.getOrNull(todayIndex)?.index ?: 0
-                val trend = WorkloadCalculator.calculateTrend(
-                    todayLoad,
-                    weekWorkloads.map { it.index }
-                )
-
-                val taskText = buildTaskSummary(tasksAll)
-                val loadText = "今日负荷：$todayLoad · 趋势：$trend"
-
-                val updatedViews = RemoteViews(context.packageName, R.layout.app_widget_progress_beacon)
-                updatedViews.setTextViewText(R.id.tv_widget_task, taskText)
-                updatedViews.setTextViewText(R.id.tv_widget_load, loadText)
-                updatedViews.setOnClickPendingIntent(R.id.tv_widget_title, pendingIntent)
-                appWidgetManager.updateAppWidget(appWidgetId, updatedViews)
             }
         }
 

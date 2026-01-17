@@ -19,6 +19,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.fjnu.schedule.data.AppDatabase
 import com.fjnu.schedule.data.CourseRepository
@@ -67,22 +69,29 @@ class AddEditCourseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_add_edit_course)
+        setupImmersiveStatusBar()
 
         val root = findViewById<LinearLayout>(R.id.add_edit_root)
-        val initialTop = root.paddingTop
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar_add_edit)
         val initialBottom = root.paddingBottom
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+        val initialToolbarTop = toolbar.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top + initialTop,
-                view.paddingRight,
+            toolbar.setPadding(
+                toolbar.paddingLeft,
+                systemBars.top + initialToolbarTop,
+                toolbar.paddingRight,
+                toolbar.paddingBottom
+            )
+            root.setPadding(
+                root.paddingLeft,
+                0,
+                root.paddingRight,
                 systemBars.bottom + initialBottom
             )
             insets
         }
 
-        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar_add_edit)
         toolbar.setNavigationIcon(R.drawable.ic_arrow_left)
         toolbar.setNavigationOnClickListener { finish() }
 
@@ -569,5 +578,17 @@ class AddEditCourseActivity : AppCompatActivity() {
         const val EXTRA_COURSE_ID = "extra_course_id"
         private const val DEFAULT_TOTAL_WEEKS = 20
         private const val DEFAULT_PERIOD_COUNT = 8
+    }
+
+    private fun setupImmersiveStatusBar() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.isAppearanceLightStatusBars = !isDarkTheme()
+    }
+
+    private fun isDarkTheme(): Boolean {
+        val mode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        return mode == android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 }
