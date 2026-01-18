@@ -1,9 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/tv_widget_line"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_course_card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:ellipsize="end"
-    android:maxLines="1"
-    android:textColor="#39424E"
-    android:textSize="12sp" />
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="@drawable/widget_course_card">
+
+    <TextView
+        android:id="@+id/tv_widget_course_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="课程名称"
+        android:textColor="@color/text_primary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/tv_widget_course_meta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="周三 1-2节 · 笃行1-213"
+        android:textColor="@color/text_secondary"
+        android:textSize="10sp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+</LinearLayout>

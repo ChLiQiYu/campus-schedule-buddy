@@ -27,7 +27,7 @@ class ScheduleWidgetService : RemoteViewsService() {
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
         )
-        private val lines = mutableListOf<String>()
+        private val lines = mutableListOf<WidgetLine>()
 
         override fun onCreate() = Unit
 
@@ -45,7 +45,9 @@ class ScheduleWidgetService : RemoteViewsService() {
 
         override fun getViewAt(position: Int): RemoteViews {
             val remoteViews = RemoteViews(context.packageName, R.layout.item_widget_line)
-            remoteViews.setTextViewText(R.id.tv_widget_line, lines.getOrNull(position).orEmpty())
+            val item = lines.getOrNull(position)
+            remoteViews.setTextViewText(R.id.tv_widget_course_name, item?.title.orEmpty())
+            remoteViews.setTextViewText(R.id.tv_widget_course_meta, item?.meta.orEmpty())
             return remoteViews
         }
 
@@ -57,7 +59,7 @@ class ScheduleWidgetService : RemoteViewsService() {
 
         override fun hasStableIds(): Boolean = true
 
-        private suspend fun loadLines(context: Context, widgetId: Int): List<String> {
+        private suspend fun loadLines(context: Context, widgetId: Int): List<WidgetLine> {
             val db = AppDatabase.getInstance(context)
             val settingsDao = db.settingsDao()
             val semesterDao = db.semesterDao()
@@ -90,15 +92,15 @@ class ScheduleWidgetService : RemoteViewsService() {
             weekIndex: Int,
             totalWeeks: Int,
             dayOfWeek: Int
-        ): List<String> {
+        ): List<WidgetLine> {
             if (weekIndex !in 1..totalWeeks) {
-                return listOf("不在学期内")
+                return listOf(WidgetLine("不在学期内", "请检查学期设置"))
             }
             val items = courses.filter { course ->
                 course.dayOfWeek == dayOfWeek && course.weekPattern.contains(weekIndex)
             }.sortedWith(compareBy({ it.startPeriod }, { it.endPeriod }))
             if (items.isEmpty()) {
-                return listOf("暂无课程")
+                return listOf(WidgetLine("暂无课程", "今日无安排"))
             }
             return items.map { course ->
                 val periodText = if (course.startPeriod == course.endPeriod) {
@@ -106,8 +108,9 @@ class ScheduleWidgetService : RemoteViewsService() {
                 } else {
                     "${course.startPeriod}-${course.endPeriod}"
                 }
-                val location = course.location?.let { " @ $it" } ?: ""
-                "$periodText ${course.name}$location"
+                val location = course.location?.let { " · $it" } ?: ""
+                val meta = "${periodText}节$location"
+                WidgetLine(course.name, meta)
             }
         }
 
@@ -115,14 +118,14 @@ class ScheduleWidgetService : RemoteViewsService() {
             courses: List<Course>,
             weekIndex: Int,
             totalWeeks: Int
-        ): List<String> {
+        ): List<WidgetLine> {
             if (weekIndex !in 1..totalWeeks) {
-                return listOf("不在学期内")
+                return listOf(WidgetLine("不在学期内", "请检查学期设置"))
             }
             val items = courses.filter { it.weekPattern.contains(weekIndex) }
                 .sortedWith(compareBy({ it.dayOfWeek }, { it.startPeriod }, { it.endPeriod }))
             if (items.isEmpty()) {
-                return listOf("暂无课程")
+                return listOf(WidgetLine("暂无课程", "本周无安排"))
             }
             return items.map { course ->
                 val dayText = formatDay(course.dayOfWeek)
@@ -131,7 +134,9 @@ class ScheduleWidgetService : RemoteViewsService() {
                 } else {
                     "${course.startPeriod}-${course.endPeriod}"
                 }
-                "$dayText $periodText ${course.name}"
+                val location = course.location?.let { " · $it" } ?: ""
+                val meta = "${dayText} ${periodText}节${location}"
+                WidgetLine(course.name, meta)
             }
         }
 
@@ -151,6 +156,11 @@ class ScheduleWidgetService : RemoteViewsService() {
                 else -> "周日"
             }
         }
+
+        private data class WidgetLine(
+            val title: String,
+            val meta: String
+        )
     }
 
     companion object {

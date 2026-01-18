@@ -47,7 +47,7 @@ class RhythmActivity : AppCompatActivity() {
     private lateinit var autoFocusSwitch: SwitchMaterial
     private lateinit var dndStatusLabel: TextView
     private lateinit var requestDndButton: MaterialButton
-    private lateinit var addWidgetButton: MaterialButton
+    private var addWidgetButton: MaterialButton? = null
     private lateinit var workloadChart: LinearLayout
 
     private var currentSemesterId: Long = 0L
@@ -159,9 +159,7 @@ class RhythmActivity : AppCompatActivity() {
             openDndSettings()
         }
 
-        addWidgetButton.setOnClickListener {
-            requestPinWidget()
-        }
+        addWidgetButton?.setOnClickListener { requestPinWidget() }
     }
 
     private fun updateDndStatus() {
