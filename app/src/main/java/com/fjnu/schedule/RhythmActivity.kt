@@ -159,7 +159,7 @@ class RhythmActivity : AppCompatActivity() {
             openDndSettings()
         }
 
-        addWidgetButton?.setOnClickListener { requestPinWidget() }
+        findViewById<MaterialButton>(R.id.btn_add_widget)?.setOnClickListener { requestPinWidget() }
     }
 
     private fun updateDndStatus() {

@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
+    <!-- <item
         android:id="@+id/action_browse_public"
         android:title="公开队伍" />
     <item
         android:id="@+id/action_invite_member"
-        android:title="邀请成员" />
-    <item
-        android:id="@+id/action_change_visibility"
-        android:title="队伍可见性" />
+        android:title="邀请成员" /> -->
     <item
         android:id="@+id/action_leave_session"
         android:title="退出组队" />

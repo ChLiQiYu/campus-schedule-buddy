@@ -102,7 +102,7 @@ class ProfileCenterActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navigation_partners -> {
-                    startActivity(Intent(this, LearningHubActivity::class.java))
+                    startActivity(Intent(this, GroupSyncActivity::class.java))
                     finish()
                     true
                 }

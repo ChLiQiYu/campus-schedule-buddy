@@ -38,7 +38,6 @@ class MainActivity : AppCompatActivity() {
     private fun setupBottomNavigation() {
         bottomNavigation.setOnItemSelectedListener { item ->
             val targetTag = when (item.itemId) {
-                R.id.navigation_schedule -> TAG_SCHEDULE
                 R.id.navigation_ai_course -> TAG_AI_COURSE
                 R.id.navigation_partners -> TAG_PARTNERS
                 R.id.navigation_profile -> TAG_PROFILE
@@ -77,7 +76,7 @@ class MainActivity : AppCompatActivity() {
     private fun switchTo(tag: String) {
         val scheduleFragment = findOrCreateFragment(TAG_SCHEDULE) { ScheduleFragment() }
         val aiCourseFragment = findOrCreateFragment(TAG_AI_COURSE) { AiCourseRecommendFragment() }
-        val partnersFragment = findOrCreateFragment(TAG_PARTNERS) { LearningHubFragment() }
+        val partnersFragment = findOrCreateFragment(TAG_PARTNERS) { GroupSyncFragment() }
         val profileFragment = findOrCreateFragment(TAG_PROFILE) { ProfileCenterFragment() }
 
         val transaction = supportFragmentManager.beginTransaction()
