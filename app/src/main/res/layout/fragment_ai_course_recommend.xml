@@ -61,69 +61,76 @@
     </LinearLayout>
 
     <!-- 推荐课程列表 -->
-    <LinearLayout
+    <ScrollView
         android:id="@+id/course_recommendations"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:background="@drawable/dialog_background"
         android:padding="16dp"
-        android:layout_marginBottom="16dp"
-        android:visibility="gone">
+        android:layout_marginBottom="64dp"
+        android:visibility="gone"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="1"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="推荐课程"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+            android:orientation="vertical">
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_gravity="end">
+                android:weightSum="1"
+                android:layout_marginBottom="16dp">
 
-                <Button
-                    android:id="@+id/btn_clear_results"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="清空结果"
-                    android:textSize="12sp"
-                    android:backgroundTint="@color/secondary"
-                    android:textColor="@android:color/white"
-                    android:layout_marginRight="8dp"
-                    app:cornerRadius="18dp" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="推荐课程"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btn_research"
+                <LinearLayout
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="重新搜索"
-                    android:textSize="12sp"
-                    android:backgroundTint="@color/primary"
-                    android:textColor="@android:color/white"
-                    app:cornerRadius="18dp" />
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_gravity="end">
+
+                    <Button
+                        android:id="@+id/btn_clear_results"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="清空结果"
+                        android:textSize="12sp"
+                        android:backgroundTint="@color/secondary"
+                        android:textColor="@android:color/white"
+                        android:layout_marginRight="8dp"
+                        app:cornerRadius="18dp" />
+
+                    <Button
+                        android:id="@+id/btn_research"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="重新搜索"
+                        android:textSize="12sp"
+                        android:backgroundTint="@color/primary"
+                        android:textColor="@android:color/white"
+                        app:cornerRadius="18dp" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
+            <!-- 动态课程列表容器 -->
+            <LinearLayout
+                android:id="@+id/course_list_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
         </LinearLayout>
 
-        <!-- 动态课程列表容器 -->
-        <LinearLayout
-            android:id="@+id/course_list_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-    </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>
