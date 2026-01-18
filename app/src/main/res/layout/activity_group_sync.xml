@@ -34,7 +34,17 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="通过Sync Code分享空闲时段，系统仅计算共同空闲，不上传完整课表。"
+                android:text="安全共享空闲时段"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="通过 Sync Code 分享你的空闲时间，系统仅计算共同空闲，不会上传完整课表"
+                android:textSize="13sp"
                 android:textColor="?android:attr/textColorSecondary" />
 
             <LinearLayout
@@ -56,17 +66,42 @@
                         android:id="@+id/et_sync_code"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textCapCharacters"
+                        android:inputType="textCapCharacters|textNoSuggestions"
+                        android:maxLength="8"
                         android:maxLines="1" />
                 </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_copy_sync_code"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="复制 Sync Code"
+                    android:insetLeft="0dp"
+                    android:insetRight="0dp"
+                    android:padding="0dp"
+                    android:text=""
+                    app:icon="@drawable/ic_content_copy_24"
+                    app:iconPadding="0dp"
+                    app:iconTint="?attr/colorOnSurface" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_join_session"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="8dp"
                     android:text="面对面组队" />
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_sync_code_rule"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="格式：6位大写字母/数字，或 I 开头的 8 位邀请码"
+                android:textSize="12sp"
+                android:textColor="?android:attr/textColorSecondary" />
 
             <TextView
                 android:id="@+id/tv_session_code"

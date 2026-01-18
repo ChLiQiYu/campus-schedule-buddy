@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -29,7 +31,9 @@ import com.fjnu.schedule.util.GroupSyncSerializer
 import com.google.android.gms.tasks.Tasks
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -42,6 +46,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.Random
+import androidx.core.widget.addTextChangedListener
 
 class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
 
@@ -51,6 +56,10 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
     private lateinit var codeInput: TextInputEditText
+    private lateinit var codeInputLayout: TextInputLayout
+    private lateinit var copyCodeButton: MaterialButton
+    private lateinit var displayNameLabel: TextView
+    private lateinit var editNameButton: MaterialButton
     private lateinit var sessionLabel: TextView
     private lateinit var memberCountLabel: TextView
     private lateinit var memberListLabel: TextView
@@ -74,7 +83,7 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
     private var membersListener: ListenerRegistration? = null
     private var externalSharesListener: ListenerRegistration? = null
     private var pendingExportPayload: GroupSyncPayload? = null
-    private var lastMemberNames: Set<String> = emptySet()
+    private var lastMemberIds: Set<String> = emptySet()
     private var hasLoadedShares = false
     private var authInProgress = false
 
@@ -110,6 +119,7 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar(view)
         initViews(view)
+        updateDisplayNameUi(getSavedDisplayName())
         setupRepositories()
         setupListeners(view)
         updateSessionUi(null)
@@ -121,14 +131,6 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
         toolbar.inflateMenu(R.menu.group_sync_menu)
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                R.id.action_browse_public -> {
-                    ensureAuthenticated { showPublicSessionsDialog() }
-                    true
-                }
-                R.id.action_invite_member -> {
-                    ensureAuthenticated { showInviteDialog() }
-                    true
-                }
                 R.id.action_leave_session -> {
                     ensureAuthenticated { leaveSession() }
                     true
@@ -144,6 +146,10 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
 
     private fun initViews(view: View) {
         codeInput = view.findViewById(R.id.et_sync_code)
+        codeInputLayout = view.findViewById(R.id.input_sync_code)
+        copyCodeButton = view.findViewById(R.id.btn_copy_sync_code)
+        displayNameLabel = view.findViewById(R.id.tv_display_name)
+        editNameButton = view.findViewById(R.id.btn_edit_display_name)
         sessionLabel = view.findViewById(R.id.tv_session_code)
         memberCountLabel = view.findViewById(R.id.tv_member_count)
         memberListLabel = view.findViewById(R.id.tv_member_list)
@@ -186,19 +192,45 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
     }
 
     private fun setupListeners(view: View) {
+        codeInput.addTextChangedListener { editable ->
+            val normalized = editable?.toString()?.trim()?.uppercase().orEmpty()
+            if (normalized.isEmpty() || normalized.length < 6) {
+                codeInputLayout.error = null
+                return@addTextChangedListener
+            }
+            codeInputLayout.error = if (isValidSyncCode(normalized)) null else "格式：6位大写字母/数字，或 I 开头的 8 位邀请码"
+        }
+
         view.findViewById<MaterialButton>(R.id.btn_join_session).setOnClickListener {
             val code = codeInput.text?.toString()?.trim()?.uppercase().orEmpty()
             if (code.isBlank()) {
-                Toast.makeText(requireContext(), "请输入Sync Code", Toast.LENGTH_SHORT).show()
+                codeInputLayout.error = "请输入 Sync Code"
                 return@setOnClickListener
             }
             if (!isValidSyncCode(code)) {
-                Toast.makeText(requireContext(), "Sync Code格式不正确", Toast.LENGTH_SHORT).show()
+                codeInputLayout.error = "格式：6位大写字母/数字，或 I 开头的 8 位邀请码"
                 return@setOnClickListener
             }
+            codeInputLayout.error = null
             ensureAuthenticated {
                 joinOrCreateSession(code)
             }
+        }
+
+        copyCodeButton.setOnClickListener {
+            val sessionCode = activeSession?.code
+            val candidate = sessionCode ?: codeInput.text?.toString()?.trim()?.uppercase().orEmpty()
+            if (candidate.isBlank()) {
+                Toast.makeText(requireContext(), "暂无可复制的 Sync Code", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("Sync Code", candidate))
+            Toast.makeText(requireContext(), "已复制 Sync Code", Toast.LENGTH_SHORT).show()
+        }
+
+        editNameButton.setOnClickListener {
+            showEditDisplayNameDialog()
         }
 
         exportButton.setOnClickListener {
@@ -248,7 +280,7 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
     private fun setActiveSession(session: GroupSyncSession) {
         activeSession = session
         currentIntersection = null
-        lastMemberNames = emptySet()
+        lastMemberIds = emptySet()
         hasLoadedShares = false
         updateSessionUi(session)
         updateWeekOptions(session.totalWeeks)
@@ -288,14 +320,20 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
                 }
                 val members = snapshot?.documents?.mapNotNull { parseMember(it) } ?: emptyList()
                 activeMembers = members
-                val currentNames = members.map { it.displayName }.toSet()
-                val newMembers = currentNames - lastMemberNames
-                lastMemberNames = currentNames
+                val currentIds = members.map { it.uid }.toSet()
+                val newMembers = if (hasLoadedShares) {
+                    members.filter { it.uid !in lastMemberIds }.map { it.displayName }
+                } else {
+                    emptyList()
+                }
+                lastMemberIds = currentIds
+                val memberNames = members.map { it.displayName }.toSet()
                 memberCountLabel.text = "成员数：${members.size}"
-                memberListLabel.text = formatMemberList(currentNames)
-                if (hasLoadedShares && newMembers.isNotEmpty()) {
+                memberListLabel.text = formatMemberList(memberNames)
+                if (newMembers.isNotEmpty()) {
                     val sessionIdSeed = (activeSession?.code?.hashCode() ?: 0).toLong()
-                    notifyNewMembers(sessionIdSeed, newMembers.toList())
+                    notifyNewMembers(sessionIdSeed, newMembers)
+                    showMemberJoinNotice(newMembers, members.size)
                 }
                 hasLoadedShares = true
                 currentIntersection = null
@@ -492,6 +530,7 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
         activeMembers = emptyList()
         externalShares = emptyList()
         currentIntersection = null
+        lastMemberIds = emptySet()
         sessionListener?.remove()
         membersListener?.remove()
         externalSharesListener?.remove()
@@ -540,9 +579,23 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
             .setTitle("设置匿名昵称")
             .setView(input)
             .setPositiveButton("确定") { _, _ ->
-                val name = input.text.toString().trim().ifBlank { "我" }
-                saveDisplayName(name)
+                val name = applyDisplayName(input.text.toString())
                 onReady(name)
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun showEditDisplayNameDialog() {
+        val input = EditText(requireContext()).apply {
+            hint = "匿名昵称"
+            setText(getSavedDisplayName().orEmpty())
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("修改匿名昵称")
+            .setView(input)
+            .setPositiveButton("保存") { _, _ ->
+                applyDisplayName(input.text.toString())
             }
             .setNegativeButton("取消", null)
             .show()
@@ -556,6 +609,35 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
     private fun saveDisplayName(name: String) {
         requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit { putString(KEY_MEMBER_NAME, name) }
+    }
+
+    private fun applyDisplayName(rawName: String): String {
+        val normalized = rawName.trim().ifBlank { "我" }
+        saveDisplayName(normalized)
+        updateDisplayNameUi(normalized)
+        syncDisplayNameToSession(normalized)
+        return normalized
+    }
+
+    private fun updateDisplayNameUi(name: String?) {
+        val displayName = name?.trim().orEmpty()
+        val label = if (displayName.isBlank()) "我的匿名昵称：未设置" else "我的匿名昵称：$displayName"
+        displayNameLabel.text = label
+    }
+
+    private fun syncDisplayNameToSession(displayName: String) {
+        val session = activeSession ?: return
+        val uid = auth.currentUser?.uid ?: return
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                Tasks.await(membersCollection(session.code).document(uid).set(mapOf("displayName" to displayName), SetOptions.merge()))
+                if (session.ownerUid == uid) {
+                    Tasks.await(sessionDoc(session.code).set(mapOf("ownerName" to displayName, "updatedAt" to System.currentTimeMillis()), SetOptions.merge()))
+                }
+            } catch (_: Exception) {
+                // no-op
+            }
+        }
     }
 
     private fun resolveSessionForCode(code: String, displayName: String): SessionResolution {
@@ -717,8 +799,7 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
             .setTitle("导出我的空闲")
             .setView(input)
             .setPositiveButton("导出") { _, _ ->
-                val name = input.text.toString().trim().ifBlank { "我" }
-                saveDisplayName(name)
+                val name = applyDisplayName(input.text.toString())
                 exportMyAvailability(session, name)
             }
             .setNegativeButton("取消", null)
@@ -923,6 +1004,13 @@ class GroupSyncFragment : Fragment(R.layout.fragment_group_sync) {
                 .build()
             manager.notify((sessionId.toInt() shl 8) + member.hashCode().coerceIn(1, 255), notification)
         }
+    }
+
+    private fun showMemberJoinNotice(newMembers: List<String>, totalCount: Int) {
+        if (!isAdded) return
+        val names = newMembers.joinToString("、")
+        val message = "新成员加入：$names（成员数：$totalCount）"
+        view?.let { Snackbar.make(it, message, Snackbar.LENGTH_SHORT).show() }
     }
 
     private fun ensureGroupSyncChannel(manager: NotificationManager) {

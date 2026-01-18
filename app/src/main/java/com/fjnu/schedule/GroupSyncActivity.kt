@@ -3,6 +3,9 @@ package com.fjnu.schedule
 import android.app.AlertDialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -30,6 +33,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -43,6 +47,7 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.Random
 import androidx.core.content.edit
+import androidx.core.widget.addTextChangedListener
 
 class GroupSyncActivity : AppCompatActivity() {
 
@@ -52,6 +57,8 @@ class GroupSyncActivity : AppCompatActivity() {
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
     private lateinit var codeInput: TextInputEditText
+    private lateinit var codeInputLayout: TextInputLayout
+    private lateinit var copyCodeButton: MaterialButton
     private lateinit var sessionLabel: TextView
     private lateinit var memberCountLabel: TextView
     private lateinit var memberListLabel: TextView
@@ -134,16 +141,6 @@ class GroupSyncActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.action_browse_public -> {
-                ensureAuthenticated { showPublicSessionsDialog() }
-                return true
-            }
-
-            R.id.action_invite_member -> {
-                ensureAuthenticated { showInviteDialog() }
-                return true
-            }
-
             R.id.action_leave_session -> {
                 ensureAuthenticated { leaveSession() }
                 return true
@@ -159,6 +156,8 @@ class GroupSyncActivity : AppCompatActivity() {
 
     private fun initViews() {
         codeInput = findViewById(R.id.et_sync_code)
+        codeInputLayout = findViewById(R.id.input_sync_code)
+        copyCodeButton = findViewById(R.id.btn_copy_sync_code)
         sessionLabel = findViewById(R.id.tv_session_code)
         memberCountLabel = findViewById(R.id.tv_member_count)
         memberListLabel = findViewById(R.id.tv_member_list)
@@ -222,19 +221,41 @@ class GroupSyncActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        codeInput.addTextChangedListener { editable ->
+            val normalized = editable?.toString()?.trim()?.uppercase().orEmpty()
+            if (normalized.isEmpty() || normalized.length < 6) {
+                codeInputLayout.error = null
+                return@addTextChangedListener
+            }
+            codeInputLayout.error = if (isValidSyncCode(normalized)) null else "格式：6位大写字母/数字，或 I 开头的 8 位邀请码"
+        }
+
         findViewById<MaterialButton>(R.id.btn_join_session).setOnClickListener {
             val code = codeInput.text?.toString()?.trim()?.uppercase().orEmpty()
             if (code.isBlank()) {
-                Toast.makeText(this, "请输入Sync Code", Toast.LENGTH_SHORT).show()
+                codeInputLayout.error = "请输入 Sync Code"
                 return@setOnClickListener
             }
             if (!isValidSyncCode(code)) {
-                Toast.makeText(this, "Sync Code格式不正确", Toast.LENGTH_SHORT).show()
+                codeInputLayout.error = "格式：6位大写字母/数字，或 I 开头的 8 位邀请码"
                 return@setOnClickListener
             }
+            codeInputLayout.error = null
             ensureAuthenticated {
                 joinOrCreateSession(code)
             }
+        }
+
+        copyCodeButton.setOnClickListener {
+            val sessionCode = activeSession?.code
+            val candidate = sessionCode ?: codeInput.text?.toString()?.trim()?.uppercase().orEmpty()
+            if (candidate.isBlank()) {
+                Toast.makeText(this, "暂无可复制的 Sync Code", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("Sync Code", candidate))
+            Toast.makeText(this, "已复制 Sync Code", Toast.LENGTH_SHORT).show()
         }
 
         exportButton.setOnClickListener {
