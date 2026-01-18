@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         bottomNavigation.setOnItemSelectedListener { item ->
             val targetTag = when (item.itemId) {
                 R.id.navigation_schedule -> TAG_SCHEDULE
+                R.id.navigation_ai_course -> TAG_AI_COURSE
                 R.id.navigation_partners -> TAG_PARTNERS
                 R.id.navigation_profile -> TAG_PROFILE
                 else -> TAG_SCHEDULE
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity() {
             true
         }
         bottomNavigation.selectedItemId = when (currentTag) {
+            TAG_AI_COURSE -> R.id.navigation_ai_course
             TAG_PARTNERS -> R.id.navigation_partners
             TAG_PROFILE -> R.id.navigation_profile
             else -> R.id.navigation_schedule
@@ -57,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun restoreFragments() {
-        val fragments = listOf(TAG_SCHEDULE, TAG_PARTNERS, TAG_PROFILE)
+        val fragments = listOf(TAG_SCHEDULE, TAG_AI_COURSE, TAG_PARTNERS, TAG_PROFILE)
         val transaction = supportFragmentManager.beginTransaction()
         fragments.forEach { tag ->
             val fragment = supportFragmentManager.findFragmentByTag(tag)
@@ -74,15 +76,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun switchTo(tag: String) {
         val scheduleFragment = findOrCreateFragment(TAG_SCHEDULE) { ScheduleFragment() }
+        val aiCourseFragment = findOrCreateFragment(TAG_AI_COURSE) { AiCourseRecommendFragment() }
         val partnersFragment = findOrCreateFragment(TAG_PARTNERS) { LearningHubFragment() }
         val profileFragment = findOrCreateFragment(TAG_PROFILE) { ProfileCenterFragment() }
 
         val transaction = supportFragmentManager.beginTransaction()
         transaction.hide(scheduleFragment)
+        transaction.hide(aiCourseFragment)
         transaction.hide(partnersFragment)
         transaction.hide(profileFragment)
 
         val target = when (tag) {
+            TAG_AI_COURSE -> aiCourseFragment
             TAG_PARTNERS -> partnersFragment
             TAG_PROFILE -> profileFragment
             else -> scheduleFragment
@@ -119,6 +124,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val KEY_CURRENT_TAG = "key_current_tag"
         private const val TAG_SCHEDULE = "nav_schedule"
+        private const val TAG_AI_COURSE = "nav_ai_course"
         private const val TAG_PARTNERS = "nav_partners"
         private const val TAG_PROFILE = "nav_profile"
     }

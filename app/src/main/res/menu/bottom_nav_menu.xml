@@ -6,6 +6,11 @@
         android:title="课程表" />
 
     <item
+        android:id="@+id/navigation_ai_course"
+        android:icon="@drawable/ic_media"
+        android:title="AI推荐" />
+
+    <item
         android:id="@+id/navigation_partners"
         android:icon="@drawable/ic_note"
         android:title="协同中心" />

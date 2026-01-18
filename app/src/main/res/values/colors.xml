@@ -40,7 +40,11 @@
     <color name="light_text_secondary">#FF5F6B66</color>
     <color name="text_primary">#FF1B1F24</color>
     <color name="text_secondary">#FF5F6B66</color>
+    <color name="secondary_text">#FF5F6B66</color>
     <color name="bottom_nav_unchecked">#FF6B7280</color>
+    
+    <!-- 卡片背景色 -->
+    <color name="card_background">#FFF8FAF8</color>
     
     <!-- 标题栏颜色 -->
     <color name="dark_title">#FF23262A</color>

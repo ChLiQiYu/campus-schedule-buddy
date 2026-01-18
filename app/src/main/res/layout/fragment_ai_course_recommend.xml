@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".AiCourseRecommendFragment">
+
+    <!-- 标题 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="AI课程推荐"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"
+        android:layout_marginTop="16dp" />
+
+    <!-- 中央按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <EditText
+            android:id="@+id/course_input"
+            android:layout_width="280dp"
+            android:layout_height="50dp"
+            android:hint="请输入课程名称，例如：软件测试"
+            android:textSize="14sp"
+            android:padding="12dp"
+            android:background="@drawable/dialog_background"
+            android:layout_marginBottom="16dp"
+            android:inputType="text" />
+
+        <TextView
+            android:id="@+id/input_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="输入课程名称后点击按钮获取推荐"
+            android:textSize="14sp"
+            android:textColor="@color/secondary_text"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/btn_generate_recommend"
+            android:layout_width="200dp"
+            android:layout_height="60dp"
+            android:text="生成推荐课程"
+            android:textSize="16sp"
+            android:backgroundTint="@color/primary"
+            android:textColor="@android:color/white"
+            app:cornerRadius="30dp" />
+
+    </LinearLayout>
+
+    <!-- 推荐课程列表 -->
+    <LinearLayout
+        android:id="@+id/course_recommendations"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/dialog_background"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="1"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="推荐课程"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_gravity="end">
+
+                <Button
+                    android:id="@+id/btn_clear_results"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="清空结果"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/secondary"
+                    android:textColor="@android:color/white"
+                    android:layout_marginRight="8dp"
+                    app:cornerRadius="18dp" />
+
+                <Button
+                    android:id="@+id/btn_research"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="重新搜索"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/primary"
+                    android:textColor="@android:color/white"
+                    app:cornerRadius="18dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- 动态课程列表容器 -->
+        <LinearLayout
+            android:id="@+id/course_list_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+
+</LinearLayout>
