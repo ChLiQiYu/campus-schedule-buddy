@@ -203,6 +203,30 @@
                 android:text="计算共同空闲" />
 
             <LinearLayout
+                android:id="@+id/layout_compute_loading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:indeterminate="true" />
+
+                <TextView
+                    android:id="@+id/tv_compute_loading"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="正在计算共同空闲..."
+                    android:textSize="12sp"
+                    android:textColor="?android:attr/textColorSecondary" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/container_results"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
