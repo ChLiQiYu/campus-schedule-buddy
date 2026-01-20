@@ -24,6 +24,7 @@
     <color name="on_error">#FF1B1010</color>
 
     <!-- 深色模式背景色 -->
+    <color name="schedule_background">#FF121413</color>
     <color name="dark_background">#FF1B1D20</color>
     <color name="dark_surface">#FF23262A</color>
     <color name="dialog_background">#FF2A2E33</color>

@@ -28,6 +28,9 @@
     <color name="dark_surface">#FF23262A</color>
     <color name="dialog_background">#FF2A2E33</color>
     
+    <!-- 课程表背景色 -->
+    <color name="schedule_background">#FFF2F7F4</color>
+    
     <!-- 浅色模式背景色 -->
     <color name="light_background">#FFF3F5F7</color>
     <color name="light_surface">#FFFFFFFF</color>

@@ -419,7 +419,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
      * 根据系统主题更新背景色
      */
     private fun updateBackgroundColor() {
-        val backgroundColor = ContextCompat.getColor(requireContext(), android.R.color.white)
+        val backgroundColor = ContextCompat.getColor(requireContext(), R.color.schedule_background)
         scheduleContainer.setBackgroundColor(backgroundColor)
     }
 
@@ -432,6 +432,38 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             val metrics = calculateGridMetrics(container.width, dayCount)
             val timeColumnWidth = metrics.timeColumnWidth
             val timeTextColor = ContextCompat.getColor(requireContext(), R.color.text_secondary)
+            val primaryTextColor = ContextCompat.getColor(requireContext(), R.color.text_primary)
+            val gridLineColor = ContextCompat.getColor(requireContext(), R.color.grid_line)
+//
+//            // 添加水平分隔线
+//            for (i in 0..periodCount) {
+//                val line = View(requireContext()).apply {
+//                    setBackgroundColor(gridLineColor)
+//                    alpha = 0.6f
+//                    layoutParams = FrameLayout.LayoutParams(
+//                        FrameLayout.LayoutParams.MATCH_PARENT,
+//                        dpToPx(1)
+//                    ).apply {
+//                        topMargin = i * rowHeight
+//                    }
+//                }
+//                container.addView(line)
+//            }
+//
+//            // 添加垂直分隔线
+//            for (i in 0..dayCount) {
+//                val line = View(requireContext()).apply {
+//                    setBackgroundColor(gridLineColor)
+//                    alpha = 0.6f
+//                    layoutParams = FrameLayout.LayoutParams(
+//                        dpToPx(1),
+//                        rowHeight * periodCount
+//                    ).apply {
+//                        leftMargin = metrics.innerPadding + metrics.timeColumnWidth + i * metrics.dayColumnWidth
+//                    }
+//                }
+//                container.addView(line)
+//            }
 
             val timeMap = periodTimes.associateBy { it.period }
             val fallbackTimes = buildFallbackTimes(periodCount)
@@ -461,6 +493,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
                     text = "$period"
                     textSize = 11f
                     gravity = Gravity.CENTER
+                    setTextColor(primaryTextColor)
                 }
 
                 // 时间段文本
