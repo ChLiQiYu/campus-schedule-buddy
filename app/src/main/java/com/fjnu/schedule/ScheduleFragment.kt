@@ -78,7 +78,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
     private lateinit var tvCurrentWeek: TextView
     private lateinit var btnPreviousWeek: ImageButton
     private lateinit var btnNextWeek: ImageButton
-    private lateinit var btnMore: com.google.android.material.button.MaterialButton
+    private lateinit var btnMore: MaterialButton
     private lateinit var scheduleContainer: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var fabAddCourse: FloatingActionButton
@@ -278,6 +278,10 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             }
         }
 
+        tvCurrentWeek.setOnClickListener {
+            showWeekSelectionDialog()
+        }
+
         btnMore.setOnClickListener {
             showMoreMenu()
         }
@@ -312,6 +316,147 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             false
         }
 
+    }
+
+    /**
+     * 显示周次选择对话框
+     */
+    private fun showWeekSelectionDialog() {
+        val dialog = BottomSheetDialog(requireContext())
+
+        // 创建主容器
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(24))
+        }
+
+        // 添加标题
+        val title = TextView(requireContext()).apply {
+            text = "选择周次"
+            textSize = 18f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, dpToPx(16))
+        }
+        container.addView(title)
+
+        // 创建网格容器 (4列网格，根据总周数计算行数)
+        val columns = 4
+        val rows = kotlin.math.ceil(totalWeeks.toDouble() / columns).toInt()
+
+        val gridContainer = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        // 按行填充周次
+        for (row in 0 until rows) {
+            val rowLayout = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                weightSum = 4.0f
+            }
+
+            for (col in 0 until columns) {
+                val weekIndex = row * columns + col + 1
+                if (weekIndex <= totalWeeks) {
+                    val isSelected = weekIndex == currentWeek
+
+                    val card = com.google.android.material.card.MaterialCardView(requireContext()).apply {
+                        radius = dpToPx(8).toFloat()
+                        if (isSelected) dpToPx(2) else dpToPx(1)
+                        strokeColor = if (isSelected) {
+                            ContextCompat.getColor(requireContext(), R.color.primary)
+                        } else {
+                            ContextCompat.getColor(requireContext(), android.R.color.darker_gray)
+                        }
+                        setCardBackgroundColor(
+                            if (isSelected) {
+                                ContextCompat.getColor(requireContext(), R.color.primary)
+                            } else {
+                                ContextCompat.getColor(requireContext(), android.R.color.transparent)
+                            }
+                        )
+
+                        val content = LinearLayout(requireContext()).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = Gravity.CENTER
+                            setPadding(dpToPx(4), dpToPx(12), dpToPx(4), dpToPx(12))
+
+                            val textView = TextView(requireContext()).apply {
+                                text = "第${weekIndex}周"
+                                textSize = 12f
+                                setTypeface(null, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+                                gravity = Gravity.CENTER
+
+                                setTextColor(
+                                    if (isSelected) {
+                                        ContextCompat.getColor(requireContext(), android.R.color.white)
+                                    } else {
+                                        ContextCompat.getColor(requireContext(), R.color.text_primary)
+                                    }
+                                )
+                            }
+                            addView(textView)
+                        }
+
+                        addView(content)
+
+                        // 设置卡片点击监听器
+                        setOnClickListener {
+                            if (weekIndex != currentWeek) {
+                                currentWeek = weekIndex
+                                updateWeekDisplay()
+                                loadScheduleForWeek(currentWeek)
+                            }
+                            dialog.dismiss()
+                        }
+                    }
+
+                    val layoutParams = LinearLayout.LayoutParams(0, dpToPx(40), 1.0f)
+                    if (col > 0) layoutParams.leftMargin = dpToPx(4)
+                    rowLayout.addView(card, layoutParams)
+                } else {
+                    // 添加空占位符保持布局平衡
+                    val placeholder = View(requireContext()).apply {
+                        visibility = View.INVISIBLE
+                    }
+                    val layoutParams = LinearLayout.LayoutParams(0, dpToPx(40), 1.0f)
+                    if (col > 0) layoutParams.leftMargin = dpToPx(4)
+                    rowLayout.addView(placeholder, layoutParams)
+                }
+            }
+
+            gridContainer.addView(rowLayout)
+
+            // 为行之间添加间距
+            if (row < rows - 1) {
+                val spacer = View(requireContext()).apply {
+                    setBackgroundResource(android.R.color.transparent)
+                }
+                val spacerParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(8)
+                )
+                gridContainer.addView(spacer, spacerParams)
+            }
+        }
+
+        container.addView(gridContainer)
+
+        dialog.setContentView(container)
+        dialog.show()
     }
 
     private fun updateWeekDisplay() {
