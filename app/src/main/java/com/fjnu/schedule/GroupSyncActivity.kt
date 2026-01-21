@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -65,6 +66,8 @@ class GroupSyncActivity : AppCompatActivity() {
     private lateinit var exportButton: MaterialButton
     private lateinit var importButton: MaterialButton
     private lateinit var computeButton: MaterialButton
+    private lateinit var computeLoadingLayout: LinearLayout
+    private lateinit var computeLoadingLabel: TextView
     private lateinit var weekSpinner: Spinner
     private lateinit var resultsContainer: LinearLayout
     private lateinit var bottomNavigation: BottomNavigationView
@@ -86,6 +89,7 @@ class GroupSyncActivity : AppCompatActivity() {
     private var lastMemberNames: Set<String> = emptySet()
     private var hasLoadedShares = false
     private var authInProgress = false
+    private var isComputingIntersection = false
 
     private val exportLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -164,6 +168,8 @@ class GroupSyncActivity : AppCompatActivity() {
         exportButton = findViewById(R.id.btn_export_share)
         importButton = findViewById(R.id.btn_import_share)
         computeButton = findViewById(R.id.btn_compute_intersection)
+        computeLoadingLayout = findViewById(R.id.layout_compute_loading)
+        computeLoadingLabel = findViewById(R.id.tv_compute_loading)
         weekSpinner = findViewById(R.id.spinner_week)
         resultsContainer = findViewById(R.id.container_results)
     }
@@ -312,6 +318,7 @@ class GroupSyncActivity : AppCompatActivity() {
         observeSession(session.code)
         observeMembers(session.code)
         observeExternalShares(session.code)
+        syncMyAvailabilityInBackground(session)
     }
 
     private fun observeSession(code: String) {
@@ -345,6 +352,11 @@ class GroupSyncActivity : AppCompatActivity() {
                 }
                 val members = snapshot?.documents?.mapNotNull { parseMember(it) } ?: emptyList()
                 activeMembers = members
+                val uid = auth.currentUser?.uid
+                val meNeedsSync = uid != null && members.firstOrNull { it.uid == uid }?.freeSlots.isNullOrBlank()
+                if (meNeedsSync) {
+                    activeSession?.let { syncMyAvailabilityInBackground(it) }
+                }
                 val currentNames = members.map { it.displayName }.toSet()
                 val newMembers = currentNames - lastMemberNames
                 lastMemberNames = currentNames
@@ -384,6 +396,8 @@ class GroupSyncActivity : AppCompatActivity() {
             memberListLabel.text = "成员：暂无"
             exportButton.isEnabled = false
             importButton.isEnabled = true
+            isComputingIntersection = false
+            computeLoadingLayout.visibility = View.GONE
             computeButton.isEnabled = false
             resultsContainer.removeAllViews()
             return
@@ -393,7 +407,17 @@ class GroupSyncActivity : AppCompatActivity() {
         sessionLabel.text = "当前组队：${session.code}$statusSuffix"
         exportButton.isEnabled = active
         importButton.isEnabled = active
-        computeButton.isEnabled = active
+        computeButton.isEnabled = active && !isComputingIntersection
+    }
+
+    private fun setComputeLoading(show: Boolean, message: String? = null) {
+        isComputingIntersection = show
+        computeLoadingLayout.visibility = if (show) View.VISIBLE else View.GONE
+        if (!message.isNullOrBlank()) {
+            computeLoadingLabel.text = message
+        }
+        val active = activeSession?.status == STATUS_ACTIVE
+        computeButton.isEnabled = active == true && !isComputingIntersection
     }
 
     private fun updateWeekOptions(totalWeeks: Int) {
@@ -910,18 +934,56 @@ class GroupSyncActivity : AppCompatActivity() {
         return GroupSyncExternalShare(memberName, freeSlots, createdAt)
     }
 
-    private fun collectFreeSlotsSources(): List<FreeSlotsSource> {
+    private fun collectFreeSlotsSources(
+        localUid: String?,
+        localFreeSlots: String?
+    ): IntersectionInputs {
         val sources = mutableListOf<FreeSlotsSource>()
+        val missingMembers = mutableListOf<String>()
         activeMembers.forEach { member ->
-            val freeSlots = member.freeSlots
-            if (!freeSlots.isNullOrBlank()) {
+            val freeSlots = if (member.uid == localUid && !localFreeSlots.isNullOrBlank()) {
+                localFreeSlots
+            } else {
+                member.freeSlots
+            }
+            if (freeSlots.isNullOrBlank()) {
+                missingMembers.add(member.displayName)
+            } else {
                 sources.add(FreeSlotsSource(member.displayName, freeSlots))
             }
         }
         externalShares.forEach { share ->
             sources.add(FreeSlotsSource(share.memberName, share.freeSlots))
         }
-        return sources
+        return IntersectionInputs(sources, missingMembers)
+    }
+
+    private fun syncMyAvailabilityInBackground(session: GroupSyncSession) {
+        if (session.status != STATUS_ACTIVE) return
+        val uid = auth.currentUser?.uid ?: return
+        val memberName = getSavedDisplayName().orEmpty().ifBlank { "我" }
+        lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val freeSlots = buildFreeSlots(session)
+                    upsertMemberAvailability(session.code, uid, memberName, freeSlots)
+                }
+            }.getOrNull()
+        }
+    }
+
+    private suspend fun syncMyAvailability(
+        session: GroupSyncSession,
+        memberName: String
+    ): String? {
+        val uid = auth.currentUser?.uid ?: return null
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val freeSlots = buildFreeSlots(session)
+                upsertMemberAvailability(session.code, uid, memberName, freeSlots)
+                freeSlots
+            }.getOrNull()
+        }
     }
 
     private fun showExportDialog(session: GroupSyncSession) {
@@ -1031,27 +1093,50 @@ class GroupSyncActivity : AppCompatActivity() {
             Toast.makeText(this, "请先创建或加入组队", Toast.LENGTH_SHORT).show()
             return
         }
-        val shareSources = collectFreeSlotsSources()
-        if (shareSources.isEmpty()) {
-            Toast.makeText(this, "请先上传或导入成员空闲", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val length = shareSources.first().freeSlots.length
-        if (shareSources.any { it.freeSlots.length != length }) {
-            Toast.makeText(this, "成员数据长度不一致", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val result = CharArray(length) { '1' }
-        shareSources.forEach { share ->
-            val slots = share.freeSlots
-            for (i in 0 until length) {
-                if (slots[i] != '1') {
-                    result[i] = '0'
+        if (isComputingIntersection) return
+        val memberName = getSavedDisplayName().orEmpty().ifBlank { "我" }
+        lifecycleScope.launch {
+            setComputeLoading(true, "正在同步课表并计算共同空闲...")
+            try {
+                val localFreeSlots = syncMyAvailability(session, memberName)
+                val expectedLength = session.totalWeeks * 7 * session.periodCount
+                val inputs = collectFreeSlotsSources(auth.currentUser?.uid, localFreeSlots)
+                if (inputs.missingMembers.isNotEmpty()) {
+                    Toast.makeText(
+                        this@GroupSyncActivity,
+                        "以下成员尚未同步课表：${inputs.missingMembers.joinToString("、")}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
                 }
+                if (inputs.sources.isEmpty()) {
+                    val hint = if (activeMembers.isEmpty() && externalShares.isEmpty()) {
+                        "成员数据同步中，请稍后再试"
+                    } else {
+                        "暂无可计算的成员课表"
+                    }
+                    Toast.makeText(this@GroupSyncActivity, hint, Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                if (inputs.sources.any { it.freeSlots.length != expectedLength }) {
+                    Toast.makeText(this@GroupSyncActivity, "成员数据长度不一致", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                val result = CharArray(expectedLength) { '1' }
+                inputs.sources.forEach { share ->
+                    val slots = share.freeSlots
+                    for (i in 0 until expectedLength) {
+                        if (slots[i] != '1') {
+                            result[i] = '0'
+                        }
+                    }
+                }
+                currentIntersection = String(result)
+                renderIntersection()
+            } finally {
+                setComputeLoading(false)
             }
         }
-        currentIntersection = String(result)
-        renderIntersection()
     }
 
     private fun renderIntersection() {
@@ -1334,6 +1419,11 @@ class GroupSyncActivity : AppCompatActivity() {
     private data class FreeSlotsSource(
         val name: String,
         val freeSlots: String
+    )
+
+    private data class IntersectionInputs(
+        val sources: List<FreeSlotsSource>,
+        val missingMembers: List<String>
     )
 
     companion object {
